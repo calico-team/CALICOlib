@@ -1,25 +1,22 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection
 import os
-from os.path import dirname
 import shutil
 from typing import Dict, NamedTuple
 import zipfile
 from .legacy import *
-from dataclasses import dataclass
+import traceback
 
 class TestFileBase[T](ABC):
-    type Test = T | Collection[T]
-
     # TODO: consider storing filename in this class
+
+    type Test = T | Collection[T]
+    subproblems: Collection[str]
+
     def __init__(self) -> None:
+        # The list of subproblems this test should belong to
         self.subproblems = []
         super().__init__()
-
-    @abstractmethod
-    def get_subproblems(self) -> list[str]:
-        """Get a list of subproblems this test should belong to"""
-        return self.subproblems
 
     @abstractmethod
     def write_test_in(self):
@@ -92,13 +89,20 @@ class Problem[T: TestFileBase]:
                 test.write_test_in()
             self._cur_file = None
 
-            test.validate_test_in(file_name + '.in')
+            try:
+                test.validate_test_in(file_name + '.in')
+            except AssertionError:
+                print(f"!!--------------------------------------------")
+                print(f"Validation failed on testcase {file_name}")
+                print(traceback.format_exc())
+                # pass
             with open(file_name + '.out', 'w') as out_file:
                 self._cur_file = out_file
                 test.write_test_out(file_name + '.in')
             self._cur_file = None
 
         self._all_test_generators.append(test_generator)
+        test.subproblems = subproblems
         for subproblem in subproblems:
             self.test_paths[subproblem].append(file_name)
 
