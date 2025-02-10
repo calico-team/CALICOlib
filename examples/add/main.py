@@ -2,7 +2,7 @@
 
 from collections.abc import Collection, Iterable
 from typing import override
-from calico_lib import Problem, run_py, TestFileBase
+from calico_lib import Problem, py_runner, TestFileBase
 import random
 
 class TestCase():
@@ -20,8 +20,11 @@ class TestCase():
         if 'main' in test_sets:
             assert self.X <= 100
 
+solution = py_runner('submissions/accepted/add_sol.py')
+
 # TODO: move this to library
 class Test(TestFileBase):
+
     def __init__(self, cases: Iterable[TestCase]|None = None) -> None:
         if cases is None:
             self.cases: list[TestCase] = []
@@ -42,7 +45,7 @@ class Test(TestFileBase):
 
     @override
     def write_test_out(self, infile: str):
-        p.print_test(run_py('submissions/accepted/add_sol.py', infile).decode())
+        p.print_test(solution.exec_file(infile))
 
     @override
     def validate_test_in(self, infile: str):
