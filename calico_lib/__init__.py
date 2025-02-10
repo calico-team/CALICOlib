@@ -2,5 +2,5 @@
 
 __version__ = "0.1"
 
-from .problem import Problem, TestCaseBase
+from .problem import Problem, TestFileBase
 from .runner import *

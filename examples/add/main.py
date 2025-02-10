@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 from collections.abc import Collection
-from calico_lib import Problem, TestCaseBase, run_py
+from typing import override
+from calico_lib import Problem, run_py, TestFileBase
 import random
 
-class TestCase(TestCaseBase):
+class TestCase():
     def __init__(self, X: int, Y: int) -> None:
         self.X = X
         self.Y = Y
@@ -15,33 +16,75 @@ class TestCase(TestCaseBase):
         p.print_test(self.X, self.Y)
 
     def verify_case(self, test_sets):
-        """Verify the test using assert"""
         assert 1 <= self.X <= 10000
         if 'main' in test_sets:
             assert self.X <= 100
 
-p = Problem[TestCase]('add', time_limit=1, mem_limit=1024000, test_sets=['main', 'bonus'])
+# TODO: move this to library
+class Test(TestFileBase):
+    def __init__(self, cases: list[TestCase]|None = None) -> None:
+        self.cases: list[TestCase] = []
+        if cases is not None:
+            self.cases = cases
+        super().__init__()
 
-@p.test_out_writer
-def out_writer(infile: str):
-    p.print_test(run_py('submissions/accepted/add_sol.py', infile).decode())
+    @override
+    def get_subproblems(self) -> list[str]:
+        return ['bonus']
 
-@p.test_validator
-def validator(cases: Collection[TestCase]):
-    total = 0
-    assert len(cases) <= 100
-    for case in cases:
-        total += case.X + case.Y
-    assert total <= 1e6
+    @override
+    def write_test_in(self):
+        p.print_test(len(self.cases))
+        for case in self.cases:
+            case.write_test_in()
+        return super().write_test_in()
 
-@p.hidden_test_generator(100, 2, ['main'])
-def pure_random(case_num):
-    if case_num < 10:
-        return TestCase(random.randint(1, 100), random.randint(1, 100))
-    return TestCase(random.randint(70, 10000), random.randint(70, 10000))
+    @override
+    def write_test_out(self, infile: str):
+        p.print_test(run_py('submissions/accepted/add_sol.py', infile).decode())
+
+    @override
+    def validate_test_in(self, infile: str):
+        """Verify the test using assert (not recommended, consider properly
+        verifying by reading the file)."""
+        total = 0
+        assert 1 <= len(self.cases) <= 100, f"Got {len(self.cases)} cases"
+        for case in self.cases:
+            case.verify_case(self.get_subproblems())
+            total += case.X + case.Y
+        assert total <= 1e6
+
+p = Problem[Test](
+        'add',
+        test_sets=['main', 'bonus'])
+
+p.add_sample_test(Test([
+    TestCase(4, 7),
+    TestCase(1, 23),
+    TestCase(9, 8),
+    TestCase(1, 1),
+    ]))
+
+@p.hidden_test_generator(test_count=2, subproblems=['main'])
+def pure_random():
+    test = Test()
+    for i in range(100):
+        if i < 10:
+            test.cases.append(TestCase(random.randint(1, 100), random.randint(1, 100)))
+        else:
+            test.cases.append(TestCase(random.randint(70, 10000), random.randint(70, 10000)))
+    return test
+
+print(len(pure_random().cases))
+print(len(pure_random().cases))
+
+@p.hidden_test_generator(test_count=2, subproblems=['main'])
+def pure_random2():
+    return Test([TestCase(random.randint(70, 1000), random.randint(5, 10))])
 
 def main():
-    p.add_sample_test([TestCase(4, 7), TestCase(8, 2)])
-    p.create_zip()
+    # p.run_cli()
+    p.create_all_tests()
+    # p.create_zip()
 
 main()
