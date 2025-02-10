@@ -5,6 +5,10 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "calico_lib"
 authors = [{name = "Connor Chang", email = "connorc0627@gmail.com"}]
+readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
+
+[project.urls]
+Home = "https://github.com/calico-team/CALICOlib"

@@ -1,6 +1,6 @@
 """CALICO lib for all your problem writing needs"""
 
-__version__ = "0.1"
+__version__ = "0.1.2"
 
 from .problem import Problem, TestFileBase
 from .runner import *
