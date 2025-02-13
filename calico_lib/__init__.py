@@ -4,3 +4,5 @@ __version__ = "0.1.2"
 
 from .problem import Problem, TestFileBase
 from .runner import *
+
+from .multicase import TestCaseBase, MulticaseTestFile

@@ -16,11 +16,10 @@ class TestFileBase[T](ABC):
     def __init__(self) -> None:
         # The list of subproblems this test should belong to
         self.subproblems = []
-        super().__init__()
 
     @abstractmethod
     def write_test_in(self):
-        """Write the input file of this test case using print_test"""
+        """Write the input file of this test using print_test"""
         pass
 
     @abstractmethod
