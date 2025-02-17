@@ -6,11 +6,11 @@ from typing import Dict, NamedTuple
 import zipfile
 from .legacy import *
 import traceback
+import subprocess
 
 class TestFileBase[T](ABC):
     # TODO: consider storing filename in this class
 
-    type Test = T | Collection[T]
     subproblems: Collection[str]
 
     def __init__(self) -> None:
@@ -46,9 +46,11 @@ class Subproblem(NamedTuple):
     mem_limit: int = _DEFAULT_MEMLIMIT
 
 class Problem[T: TestFileBase]:
-    def __init__(self, problem_name: str, test_sets = []):
+    test_sets: list[Subproblem]
+
+    def __init__(self, problem_name: str, test_sets: list[Subproblem] = []):
         self.problem_name = problem_name
-        self.test_sets: list[Subproblem] = test_sets;
+        self.test_sets = test_sets;
 
         self.sample_count = 0
         self.hidden_count = 0
@@ -56,7 +58,7 @@ class Problem[T: TestFileBase]:
         # mapping from test sets to tests included in that test set
         self.test_paths: Dict[str, list[str]] = dict()
         for subproblem in test_sets:
-            self.test_paths[subproblem] = []
+            self.test_paths[subproblem.name] = []
 
         # the current file that we will write to with print_test
         self._cur_file = None
@@ -80,7 +82,14 @@ class Problem[T: TestFileBase]:
         assert self._cur_file != None, "This function should be called in one of the test_write_* function"
         print(*values, sep=sep, end=end, file=self._cur_file)
 
-    def _add_test(self, test: TestFileBase, file_name: str, subproblems: list[str] = ['main']):
+    def _add_test(self,
+                  test: TestFileBase,
+                  file_path: str,
+                  file_prefix: str,
+                  subproblems: list[str]|None = None):
+        if subproblems is None:
+            subproblems = [s.name for s in self.test_sets]
+        file_name = os.path.join(file_path, file_prefix + '_' + subproblems[0])
         def test_generator():
             with open(file_name + '.in', 'w') as in_file:
                 self._cur_file = in_file
@@ -88,13 +97,13 @@ class Problem[T: TestFileBase]:
                 test.write_test_in()
             self._cur_file = None
 
-            try:
-                test.validate_test_in(file_name + '.in')
-            except AssertionError:
-                print(f"!!--------------------------------------------")
-                print(f"Validation failed on testcase {file_name}")
-                print(traceback.format_exc())
-                # pass
+            # try:
+            test.validate_test_in(file_name + '.in')
+            # except (AssertionError, subprocess.CalledProcessError):
+            #     print(f"!!--------------------------------------------")
+            #     print(f"Validation failed on testcase {file_name}")
+            #     print(traceback.format_exc())
+            #     # pass
             with open(file_name + '.out', 'w') as out_file:
                 self._cur_file = out_file
                 test.write_test_out(file_name + '.in')
@@ -105,17 +114,15 @@ class Problem[T: TestFileBase]:
         for subproblem in subproblems:
             self.test_paths[subproblem].append(file_name)
 
-    def add_sample_test(self, test: TestFileBase, name: str='', subproblems: list[str] = ['main']):
+    def add_sample_test(self, test: TestFileBase, name: str='', subproblems: list[str]|None = None):
         if name != '': name = '_' + name
-        filepath = os.path.join(_SAMPLE_PATH, f'{self.sample_count:02d}_{subproblems[-1]}{name}')
+        self._add_test(test, _SAMPLE_PATH, f'{self.sample_count:02d}{name}', subproblems)
         self.sample_count += 1
-        self._add_test(test, filepath, subproblems)
 
-    def add_hidden_test(self, test: TestFileBase, name: str='', subproblems: list[str] = ['main']):
+    def add_hidden_test(self, test: TestFileBase, name: str='', subproblems: list[str]|None = None):
         if name != '': name = '_' + name
-        filepath = os.path.join(_SECRET_PATH, f'{self.hidden_count:02d}_{subproblems[-1]}{name}')
+        self._add_test(test, _SECRET_PATH, f'{self.hidden_count:02d}{name}', subproblems)
         self.hidden_count += 1
-        self._add_test(test, filepath, subproblems)
 
     def hidden_test_generator(self, test_count = 1, subproblems: list[str] = ['main']):
         """Add a hidden test generator. Repeats to generate test_count number of test files.

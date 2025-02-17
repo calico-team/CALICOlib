@@ -1,8 +1,8 @@
 """CALICO lib for all your problem writing needs"""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
-from .problem import Problem, TestFileBase
+from .problem import Problem, TestFileBase, Subproblem
 from .runner import *
 
 from .multicase import TestCaseBase, MulticaseTestFile
