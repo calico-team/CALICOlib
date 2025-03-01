@@ -22,8 +22,8 @@ class Runner:
         return subprocess.check_output(self.run_cmd).decode()
 
     def exec_file(self, infile: str):
-        with open(infile) as file:
-            return subprocess.check_output(self.run_cmd, stdin=file).decode()
+        with open(infile, encoding='utf-8') as file:
+            return subprocess.check_output(self.run_cmd, stdin=file, encoding='utf-8')
 
     def compile(self):
         if self.compile_cmd is None:

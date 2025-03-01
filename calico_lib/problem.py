@@ -69,7 +69,7 @@ class Problem[T: TestFileBase]:
 
     def init_problem(self):
         """
-        Create subdirectories for this problems
+        Create subdirectories for this problem
         """
         os.makedirs(os.path.join(self.problem_dir, 'submissions', 'accepted'), exist_ok=True)
         os.makedirs(os.path.join(self.problem_dir, 'submissions', 'run_time_error'), exist_ok=True)
@@ -98,7 +98,7 @@ class Problem[T: TestFileBase]:
             subproblems = [s.name for s in self.test_sets]
         file_name = os.path.join(file_path, file_prefix + '_' + subproblems[0])
         def test_generator():
-            with open(file_name + '.in', 'w') as in_file:
+            with open(file_name + '.in', 'w', encoding='utf-8') as in_file:
                 self._cur_file = in_file
                 print(f"Writing infile {file_name+'.in'}")
                 test.write_test_in()
@@ -111,7 +111,7 @@ class Problem[T: TestFileBase]:
             #     print(f"Validation failed on testcase {file_name}")
             #     print(traceback.format_exc())
             #     # pass
-            with open(file_name + '.out', 'w') as out_file:
+            with open(file_name + '.out', 'w', encoding='utf-8') as out_file:
                 self._cur_file = out_file
                 test.write_test_out(file_name + '.in')
             self._cur_file = None
