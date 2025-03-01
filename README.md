@@ -14,7 +14,7 @@ flit install --symlink
 ```
 
 ## Quick Start
-See examples/add.
+See examples/add. Also see https://github.com/calico-team/CALICOlib/blob/main/examples/add/main.py
 
 ## Development
 Bump version number in `__init__.py` and run `flit publish` or another build tool. See [documentation for flit](https://flit.pypa.io/en/stable/).
