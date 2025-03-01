@@ -35,8 +35,6 @@ class TestFileBase[T](ABC):
 
 # A test consist of either a single case or multiple test cases
 
-_SAMPLE_PATH = os.path.join('data', 'sample')
-_SECRET_PATH = os.path.join('data', 'secret')
 _DEFAULT_MEMLIMIT = 256_000_000
 
 class Subproblem(NamedTuple):
@@ -47,10 +45,12 @@ class Subproblem(NamedTuple):
 
 class Problem[T: TestFileBase]:
     test_sets: list[Subproblem]
+    problem_dir: str
 
-    def __init__(self, problem_name: str, test_sets: list[Subproblem] = []):
+    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = []):
         self.problem_name = problem_name
-        self.test_sets = test_sets;
+        self.test_sets = test_sets
+        self.problem_dir = problem_dir
 
         self.sample_count = 0
         self.hidden_count = 0
@@ -62,12 +62,19 @@ class Problem[T: TestFileBase]:
 
         # the current file that we will write to with print_test
         self._cur_file = None
+        self._sample_path = os.path.join(self.problem_dir, 'data', 'sample')
+        self._secret_path = os.path.join(self.problem_dir, 'data', 'secret')
         self._all_test_generators = []
 
-        os.makedirs(os.path.join('submissions', 'accepted'), exist_ok=True)
-        os.makedirs(os.path.join('submissions', 'run_time_error'), exist_ok=True)
-        os.makedirs(os.path.join('submissions', 'time_limit_exceeded'), exist_ok=True)
-        os.makedirs(os.path.join('submissions', 'wrong_answer'), exist_ok=True)
+
+    def init_problem(self):
+        """
+        Create subdirectories for this problems
+        """
+        os.makedirs(os.path.join(self.problem_dir, 'submissions', 'accepted'), exist_ok=True)
+        os.makedirs(os.path.join(self.problem_dir, 'submissions', 'run_time_error'), exist_ok=True)
+        os.makedirs(os.path.join(self.problem_dir, 'submissions', 'time_limit_exceeded'), exist_ok=True)
+        os.makedirs(os.path.join(self.problem_dir, 'submissions', 'wrong_answer'), exist_ok=True)
 
     def add_test_set(self, problem_name: str, rank: int, time_limit = 1, mem_limit: int = _DEFAULT_MEMLIMIT):
         self.test_sets.append(Subproblem(problem_name, rank, time_limit, mem_limit))
@@ -116,12 +123,12 @@ class Problem[T: TestFileBase]:
 
     def add_sample_test(self, test: TestFileBase, name: str='', subproblems: list[str]|None = None):
         if name != '': name = '_' + name
-        self._add_test(test, _SAMPLE_PATH, f'{self.sample_count:02d}{name}', subproblems)
+        self._add_test(test, self._sample_path, f'{self.sample_count:02d}{name}', subproblems)
         self.sample_count += 1
 
     def add_hidden_test(self, test: TestFileBase, name: str='', subproblems: list[str]|None = None):
         if name != '': name = '_' + name
-        self._add_test(test, _SECRET_PATH, f'{self.hidden_count:02d}{name}', subproblems)
+        self._add_test(test, self._secret_path, f'{self.hidden_count:02d}{name}', subproblems)
         self.hidden_count += 1
 
     def hidden_test_generator(self, test_count = 1, subproblems: list[str] = ['main']):
@@ -141,13 +148,13 @@ class Problem[T: TestFileBase]:
     def create_all_tests(self):
         """Delete existing tests and regenerate them based on all the tests and generators added."""
         try:
-            shutil.rmtree(_SAMPLE_PATH)
-            shutil.rmtree(_SECRET_PATH)
+            shutil.rmtree(self._sample_path)
+            shutil.rmtree(self._secret_path)
         except FileNotFoundError:
             # First time running
             pass
-        os.makedirs(_SAMPLE_PATH, exist_ok=True)
-        os.makedirs(_SECRET_PATH, exist_ok=True)
+        os.makedirs(self._sample_path, exist_ok=True)
+        os.makedirs(self._secret_path, exist_ok=True)
         for fn in self._all_test_generators:
             fn()
 
@@ -158,6 +165,7 @@ class Problem[T: TestFileBase]:
         """
         for test_set in self.test_sets:
             file_path = get_zip_file_path(self.problem_name, test_set.name)
+            file_path = os.path.join(self.problem_dir, file_path)
             print(f'Creating zip for test set "{test_set.name}" at "{file_path}...')
             with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 for file in self.test_paths[test_set.name]:

@@ -1,5 +1,6 @@
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
+import os
 import shutil
 import subprocess
 import sys
@@ -15,7 +16,7 @@ def configure_cpp_cc(cmd):
 @dataclass
 class Runner:
     run_cmd: Sequence[str]
-    compile_cmd: Sequence[str] | None
+    compile_cmd: Sequence[str] | None = None
 
     def exec(self):
         return subprocess.check_output(self.run_cmd).decode()
@@ -27,13 +28,13 @@ class Runner:
     def compile(self):
         if self.compile_cmd is None:
             return
-        return subprocess.check_output(self.run_cmd).decode()
+        return subprocess.check_output(self.compile_cmd).decode()
 
 def py_runner(src_path: str):
     return Runner([sys.executable, src_path], None)
 
-def cpp_runner(src_path: str):
+def cpp_runner(src_path: str, bin_name: str):
     return Runner(
-            [CC, '-O2', '-Wl,-z,stack-size=268435456', '-o', 'bin.out', src_path],
-            ['./bin.out']
+            ['./' + bin_name + '.out'],
+            [CC, '-Wall', '-Wshadow', '-Wextra', '-O2', '-Wl,-z,stack-size=268435456', '-o', bin_name + '.out', src_path]
             )
