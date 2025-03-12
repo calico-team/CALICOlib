@@ -9,6 +9,9 @@ readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
+dependencies = [
+    "requests"
+]
 
 [project.urls]
 Home = "https://github.com/calico-team/CALICOlib"

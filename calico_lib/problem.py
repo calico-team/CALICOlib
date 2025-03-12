@@ -4,6 +4,8 @@ import os
 import shutil
 from typing import Dict, NamedTuple
 import zipfile
+
+from calico_lib.judge_api import upload_problem_zip
 from .legacy import *
 import traceback
 import subprocess
@@ -186,3 +188,44 @@ class Problem:
             print(f'Done creating zip for test set "{test_set.name}"!')
 
         os.chdir(previous_cwd)
+
+    def default_metadata(self, subproblem: str):
+        """
+        Default metadata used to create problem.json
+        """
+        p = next(filter(lambda s: s.name == subproblem, self.test_sets))
+        assert p, 'invalid subproblem'
+
+        rank_color_map = {
+                1: '#e9e4d7',
+                2: '#ff7e34',
+                3: '#995d59',
+                4: '#000000',
+                }
+        obj = {
+                'id': self.problem_name + '_' + subproblem,
+                'label': self.problem_name + '_' + subproblem,
+                # 'name': self.problem_name + '_' + subproblem,
+                'rgb': rank_color_map[p.rank],
+                }
+
+        return obj
+
+    def run_cli(self):
+        parser = argparse.ArgumentParser(
+                        prog='CALICOLib problem CLI',
+                        description='CLI interface for various actions for this problem. By default, generates and verifies test cases.',
+                        epilog='')
+
+        parser.add_argument('-u', '--upload-zip', action='store_true', help='Also generate and upload zip for the problem to the judge server.')
+        parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
+
+        args = parser.parse_args()
+
+        self.create_all_tests()
+        if args.upload_zip:
+            self.create_zip()
+            for test_set in self.test_sets:
+                upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name))
+        # parser.add_argument('-f', '--force', help='Force')
+

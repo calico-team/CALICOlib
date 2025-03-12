@@ -37,3 +37,10 @@ class MulticaseTestFile(TestFileBase):
         for case in self.cases:
             case.write_test_in()
         return super().write_test_in()
+
+#
+# class TestFileFromFile(TestFileBase):
+#
+#     @override
+#     def write_test_in(self):
+#         return super().write_test_in()
