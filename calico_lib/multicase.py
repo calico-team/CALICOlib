@@ -1,4 +1,3 @@
-# TODO: move this to library
 from .problem import Problem, TestFileBase
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Iterable

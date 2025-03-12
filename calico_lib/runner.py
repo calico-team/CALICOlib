@@ -22,7 +22,7 @@ class Runner:
         return subprocess.check_output(self.run_cmd).decode()
 
     def exec_file(self, infile: str):
-        with open(infile, encoding='utf-8') as file:
+        with open(infile, encoding='utf-8', newline='\n') as file:
             return subprocess.check_output(self.run_cmd, stdin=file, encoding='utf-8')
 
     def compile(self):

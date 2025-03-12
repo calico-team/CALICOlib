@@ -8,7 +8,7 @@ from .legacy import *
 import traceback
 import subprocess
 
-class TestFileBase[T](ABC):
+class TestFileBase(ABC):
     # TODO: consider storing filename in this class
 
     subproblems: Collection[str]
@@ -43,7 +43,7 @@ class Subproblem(NamedTuple):
     time_limit: int = 1
     mem_limit: int = _DEFAULT_MEMLIMIT
 
-class Problem[T: TestFileBase]:
+class Problem:
     test_sets: list[Subproblem]
     problem_dir: str
 
@@ -98,7 +98,7 @@ class Problem[T: TestFileBase]:
             subproblems = [s.name for s in self.test_sets]
         file_name = os.path.join(file_path, file_prefix + '_' + subproblems[0])
         def test_generator():
-            with open(file_name + '.in', 'w', encoding='utf-8') as in_file:
+            with open(file_name + '.in', 'w', encoding='utf-8', newline='\n') as in_file:
                 self._cur_file = in_file
                 print(f"Writing infile {file_name+'.in'}")
                 test.write_test_in()
@@ -111,7 +111,7 @@ class Problem[T: TestFileBase]:
             #     print(f"Validation failed on testcase {file_name}")
             #     print(traceback.format_exc())
             #     # pass
-            with open(file_name + '.out', 'w', encoding='utf-8') as out_file:
+            with open(file_name + '.out', 'w', encoding='utf-8', newline='\n') as out_file:
                 self._cur_file = out_file
                 test.write_test_out(file_name + '.in')
             self._cur_file = None
@@ -135,13 +135,13 @@ class Problem[T: TestFileBase]:
         """Add a hidden test generator. Repeats to generate test_count number of test files.
         Repeat case_per_test times for each test.
         """
-        def generator(gen_fn: Callable[[], T]):
+        def generator(gen_fn: Callable[[], TestFileBase]):
             for _ in range(test_count):
                 self.add_hidden_test(gen_fn(), gen_fn.__name__, subproblems)
             return gen_fn
         return generator
 
-    def test_validator(self, validator: Callable[[Collection[T]], None]):
+    def test_validator(self, validator: Callable[[Collection[TestFileBase]], None]):
         self._test_validator = validator
         return validator
 
