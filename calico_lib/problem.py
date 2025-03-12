@@ -5,7 +5,7 @@ import shutil
 from typing import Dict, NamedTuple
 import zipfile
 
-from calico_lib.judge_api import upload_problem_zip
+from calico_lib.judge_api import set_user, upload_problem_zip
 from .legacy import *
 import traceback
 import subprocess
@@ -113,7 +113,7 @@ class Problem:
             #     print(f"Validation failed on testcase {file_name}")
             #     print(traceback.format_exc())
             #     # pass
-            with open(file_path + '.out', 'w', encoding='utf-8', newline='\n') as out_file:
+            with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:
                 self._cur_file = out_file
                 test.write_test_out(file_path + '.in')
             self._cur_file = None
@@ -180,7 +180,7 @@ class Problem:
             with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 for file in self.test_paths[test_set.name]:
                     zip_file.write(file+'.in')
-                    zip_file.write(file+'.out')
+                    zip_file.write(file+'.ans')
 
                 zip_path(zip_file, 'submissions', test_set.name, lambda _, _2: True)
                 zip_metadata(zip_file, self.problem_name, test_set.name, test_set.time_limit)
@@ -221,6 +221,8 @@ class Problem:
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
 
         args = parser.parse_args()
+        if args.auth is not None:
+            set_user(tuple(args.auth.split(':')))
 
         self.create_all_tests()
         if args.upload_zip:
