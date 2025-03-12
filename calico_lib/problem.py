@@ -62,8 +62,8 @@ class Problem:
 
         # the current file that we will write to with print_test
         self._cur_file = None
-        self._sample_path = os.path.join(self.problem_dir, 'data', 'sample')
-        self._secret_path = os.path.join(self.problem_dir, 'data', 'secret')
+        self._sample_path = os.path.join('data', 'sample')
+        self._secret_path = os.path.join('data', 'secret')
         self._all_test_generators = []
 
 
@@ -91,35 +91,35 @@ class Problem:
 
     def _add_test(self,
                   test: TestFileBase,
-                  file_path: str,
+                  file_dir: str,
                   file_prefix: str,
                   subproblems: list[str]|None = None):
         if subproblems is None:
             subproblems = [s.name for s in self.test_sets]
-        file_name = os.path.join(file_path, file_prefix + '_' + subproblems[0])
+        file_path = os.path.join(file_dir, file_prefix + '_' + subproblems[0])
         def test_generator():
-            with open(file_name + '.in', 'w', encoding='utf-8', newline='\n') as in_file:
+            with open(file_path + '.in', 'w', encoding='utf-8', newline='\n') as in_file:
                 self._cur_file = in_file
-                print(f"Writing infile {file_name+'.in'}")
+                print(f"Writing infile {file_path+'.in'}")
                 test.write_test_in()
             self._cur_file = None
 
             # try:
-            test.validate_test_in(file_name + '.in')
+            test.validate_test_in(file_path + '.in')
             # except (AssertionError, subprocess.CalledProcessError):
             #     print(f"!!--------------------------------------------")
             #     print(f"Validation failed on testcase {file_name}")
             #     print(traceback.format_exc())
             #     # pass
-            with open(file_name + '.out', 'w', encoding='utf-8', newline='\n') as out_file:
+            with open(file_path + '.out', 'w', encoding='utf-8', newline='\n') as out_file:
                 self._cur_file = out_file
-                test.write_test_out(file_name + '.in')
+                test.write_test_out(file_path + '.in')
             self._cur_file = None
 
         self._all_test_generators.append(test_generator)
         test.subproblems = subproblems
         for subproblem in subproblems:
-            self.test_paths[subproblem].append(file_name)
+            self.test_paths[subproblem].append(file_path)
 
     def add_sample_test(self, test: TestFileBase, name: str='', subproblems: list[str]|None = None):
         if name != '': name = '_' + name
@@ -147,6 +147,9 @@ class Problem:
 
     def create_all_tests(self):
         """Delete existing tests and regenerate them based on all the tests and generators added."""
+        previous_cwd = os.getcwd()
+        os.chdir(self.problem_dir)
+
         try:
             shutil.rmtree(self._sample_path)
             shutil.rmtree(self._secret_path)
@@ -158,11 +161,16 @@ class Problem:
         for fn in self._all_test_generators:
             fn()
 
+        os.chdir(previous_cwd)
+
     def create_zip(self):
         """
         Create a zip for each test set. Each test set consists of data, submissions,
         and the DOMjudge metadata file.
         """
+        previous_cwd = os.getcwd()
+        os.chdir(self.problem_dir)
+
         for test_set in self.test_sets:
             file_path = get_zip_file_path(self.problem_name, test_set.name)
             file_path = os.path.join(self.problem_dir, file_path)
@@ -176,3 +184,5 @@ class Problem:
                 zip_metadata(zip_file, self.problem_name, test_set.name, test_set.time_limit)
 
             print(f'Done creating zip for test set "{test_set.name}"!')
+
+        os.chdir(previous_cwd)
