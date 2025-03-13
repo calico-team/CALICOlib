@@ -19,5 +19,15 @@ See examples/add. Also see https://github.com/calico-team/CALICOlib/blob/main/ex
 ## Development
 Bump version number in `__init__.py` and run `flit publish` or another build tool. See [documentation for flit](https://flit.pypa.io/en/stable/).
 
+## Roadmap
+Problem / Test Generation / Test Verification:
+- [ ] Support test case from file
+- [ ] Rethink API (Subproblem should be Problem and Problem should be MultipartProblem)
+
+Other stuff:
+- [ ] Upload problem to testing contest
+- [ ] Create contest
+- [ ] Create contest.zip
+
 ## Similar tools
 https://github.com/RagnarGrootKoerkamp/BAPCtools
