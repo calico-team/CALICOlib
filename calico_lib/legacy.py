@@ -90,8 +90,7 @@ def zip_metadata(zip_file, problem_name, test_set_name, time_limit):
 
     meta_path = os.path.join(os.path.dirname(__file__), 'domjudge-problem.ini')
     with open(meta_path, 'w') as meta_file:
-        if len(sys.argv) > 1 and 'r' not in sys.argv[1]:
-            problem_name = '*' + problem_name
+        problem_name = 'draft_' + problem_name
         print(f'name={problem_name}_{test_set_name}', file=meta_file)
         print(f'timelimit={time_limit}', file=meta_file)
 

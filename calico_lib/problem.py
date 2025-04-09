@@ -5,7 +5,7 @@ import shutil
 from typing import Dict, NamedTuple
 import zipfile
 
-from calico_lib.judge_api import set_user, upload_problem_zip
+from calico_lib.judge_api import replace_problem_zip, set_user, upload_problem_zip
 from .legacy import *
 import traceback
 import subprocess
@@ -217,8 +217,9 @@ class Problem:
                         description='CLI interface for various actions for this problem. By default, generates and verifies test cases.',
                         epilog='')
 
-        parser.add_argument('-u', '--upload-zip', action='store_true', help='Also generate and upload zip for the problem to the judge server.')
+        parser.add_argument('-u', '--upload-zip', action='store_true', help='Also generate and upload zip for the problem to the testing contest.')
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
+        # parser.add_argument('-f', '--force', help='Force')
 
         args = parser.parse_args()
         if args.auth is not None:
@@ -228,6 +229,14 @@ class Problem:
         if args.upload_zip:
             self.create_zip()
             for test_set in self.test_sets:
-                upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name))
-        # parser.add_argument('-f', '--force', help='Force')
+                lockfile = os.path.join(self.problem_dir, self.problem_name + '_' + test_set.name + '.lock')
+                if os.path.exists(lockfile):
+                    with open(lockfile, 'r', encoding='utf-8') as f:
+                        pid = int(f.read())
+                    replace_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+                else:
+                    pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name))
+                    if pid is not None:
+                        with open(lockfile, 'w', encoding='utf-8') as f:
+                            f.write(str(pid) + '\n')
 
