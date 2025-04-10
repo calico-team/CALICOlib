@@ -5,7 +5,7 @@ import shutil
 from typing import Dict, NamedTuple
 import zipfile
 
-from calico_lib.judge_api import replace_problem_zip, set_user, upload_problem_zip
+from calico_lib.judge_api import set_user, upload_problem_zip
 from .legacy import *
 import traceback
 import subprocess
@@ -225,17 +225,21 @@ class Problem:
         if args.auth is not None:
             set_user(tuple(args.auth.split(':')))
 
+        print('\n=== Creating Tests ===')
         self.create_all_tests()
+
         if args.upload_zip:
+            print('\n=== Creating Zip ===')
             self.create_zip()
+            print('\n=== Uploading ===')
             for test_set in self.test_sets:
                 lockfile = os.path.join(self.problem_dir, self.problem_name + '_' + test_set.name + '.lock')
                 if os.path.exists(lockfile):
                     with open(lockfile, 'r', encoding='utf-8') as f:
                         pid = int(f.read())
-                    replace_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+                    upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
                 else:
-                    pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name))
+                    pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), None)
                     if pid is not None:
                         with open(lockfile, 'w', encoding='utf-8') as f:
                             f.write(str(pid) + '\n')

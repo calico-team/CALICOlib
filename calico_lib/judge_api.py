@@ -30,27 +30,13 @@ def upload_to_testing_contest(problem):
     # for s in problem.test_sets:
     #     problem.default_metadata(s.name)
 
-def upload_problem_zip(file_name) -> int|None:
-    print('Creating new problem...')
-    r = requests.post(BASE_URL + '/contests/3/problems', files={'zip': open(file_name, 'rb')}, auth=USER)
-    print(f'STATUS: {r.status_code}')
-    print(f'{r.text}')
-    if r.status_code == 401:
-        print('UNAUTHORIZED')
-        return
-    result = r.json()
-    print(json.dumps(result, indent=2))
-    if r.status_code != 200:
-        print('FAILED')
-        return
-    pid = result['problem_id']
-    if (r.status_code == 200):
-        print(f"New problem created with pid: {pid}")
-    return pid
-
-def replace_problem_zip(file_name, pid: int):
-    print(f'Replacing problem; pid: {pid}...')
-    r = requests.post(BASE_URL + '/contests/3/problems', files={'zip': open(file_name, 'rb')}, auth=USER)
+def upload_problem_zip(file_name, pid: int|None):
+    if pid is None:
+        print(f'Creating problem...')
+        r = requests.post(BASE_URL + '/contests/3/problems', files={'zip': open(file_name, 'rb')}, auth=USER)
+    else:
+        print(f'Replacing problem; pid: {pid}...')
+        r = requests.post(BASE_URL + '/contests/3/problems', data={'problem': str(pid)}, files={'zip': open(file_name, 'rb')}, auth=USER)
     print(f'STATUS: {r.status_code}')
     print(f'{r.text}')
     if r.status_code == 401:
@@ -60,7 +46,7 @@ def replace_problem_zip(file_name, pid: int):
     print(json.dumps(result, indent=2))
     pid = result['problem_id']
     if (r.status_code == 200):
-        print(f"new problem created with pid: {pid}")
+        print(f"problem uploaded with pid: {pid}")
 
 # r = requests.get(BASE_URL + '/contests/3/problems', auth=('ejam', 'UaLgMZtr8PavGby'))
 # r = requests.get(BASE_URL + '/status', auth=('ejam', 'UaLgMZtr8PavGby'))
