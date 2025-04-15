@@ -35,6 +35,6 @@ def py_runner(src_path: str):
 
 def cpp_runner(src_path: str, bin_name: str):
     return Runner(
-            ['./' + bin_name + '.out'],
-            [CC, '-Wall', '-Wshadow', '-Wextra', '-O2', '-Wl,-z,stack-size=268435456', '-o', bin_name + '.out', src_path]
+            [bin_name],
+            [CC, '-Wall', '-Wshadow', '-Wextra', '-O2', '-Wl,-z,stack-size=268435456', '-o', bin_name, src_path]
             )
