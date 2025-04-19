@@ -47,7 +47,8 @@ def upload_problem_zip(file_name, pid: int|None):
     pid = result['problem_id']
     if (r.status_code == 200):
         print(f"problem uploaded with pid: {pid}")
-    return pid
+        return pid
+    return None
 
 # r = requests.get(BASE_URL + '/contests/3/problems', auth=('ejam', 'UaLgMZtr8PavGby'))
 # r = requests.get(BASE_URL + '/status', auth=('ejam', 'UaLgMZtr8PavGby'))
