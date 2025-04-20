@@ -80,7 +80,7 @@ def zip_path(zip_file, path, test_set_name, is_file_in_test_set):
     print(f'Done!')
 
 
-def zip_metadata(zip_file, problem_name, test_set_name, time_limit):
+def zip_metadata(zip_file, problem_name, test_set_name, time_limit, custom_compare = None):
     """
     Add the DOMjudge metadata file to the zip_file with the test_set_name. This
     function creates a temporary file, writes name and timelimit, adds it to
@@ -93,6 +93,8 @@ def zip_metadata(zip_file, problem_name, test_set_name, time_limit):
         problem_name = 'draft_' + problem_name
         print(f'name={problem_name}_{test_set_name}', file=meta_file)
         print(f'timelimit={time_limit}', file=meta_file)
+        if custom_compare is not None:
+            print(f'special_compare=\'{custom_compare}\'', file=meta_file)
 
     zip_file.write(meta_path, 'domjudge-problem.ini')
     os.remove(meta_path)

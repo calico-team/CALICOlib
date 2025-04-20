@@ -10,6 +10,9 @@ from .legacy import *
 import traceback
 import subprocess
 
+# TODO:
+# screw problem dir, just have user cd into dir
+
 class TestFileBase(ABC):
     # TODO: consider storing filename in this class
 
@@ -48,11 +51,13 @@ class Subproblem(NamedTuple):
 class Problem:
     test_sets: list[Subproblem]
     problem_dir: str
+    custom_checker: None|str
 
     def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = []):
         self.problem_name = problem_name
         self.test_sets = test_sets
         self.problem_dir = problem_dir
+        self.custom_checker = None
 
         self.sample_count = 0
         self.hidden_count = 0
@@ -183,7 +188,7 @@ class Problem:
                     zip_file.write(file+'.ans')
 
                 zip_path(zip_file, 'submissions', test_set.name, lambda _, _2: True)
-                zip_metadata(zip_file, self.problem_name, test_set.name, test_set.time_limit)
+                zip_metadata(zip_file, self.problem_name, test_set.name, test_set.time_limit, self.custom_checker)
 
             print(f'Done creating zip for test set "{test_set.name}"!')
 
