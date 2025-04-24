@@ -224,14 +224,16 @@ class Problem:
 
         parser.add_argument('-u', '--upload-zip', action='store_true', help='Also generate and upload zip for the problem to the testing contest.')
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
+        parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
         # parser.add_argument('-f', '--force', help='Force')
 
         args = parser.parse_args()
         if args.auth is not None:
             set_user(tuple(args.auth.split(':')))
 
-        print('\n=== Creating Tests ===')
-        self.create_all_tests()
+        if not args.skip_test_gen:
+            print('\n=== Creating Tests ===')
+            self.create_all_tests()
 
         if args.upload_zip:
             print('\n=== Creating Zip ===')

@@ -6,9 +6,9 @@ BASE_URL = 'https://calicojudge.com/api/v4'
 
 USER = None
 
+TESTING_CONTEST_ID = 33
+
 # TODO:
-# judge.lock: contains problemid on the judge
-# check if problem exists
 # error check
 
 # def _post()
@@ -33,10 +33,15 @@ def upload_to_testing_contest(problem):
 def upload_problem_zip(file_name, pid: int|None):
     if pid is None:
         print(f'Creating problem...')
-        r = requests.post(BASE_URL + '/contests/3/problems', files={'zip': open(file_name, 'rb')}, auth=USER)
+        r = requests.post(BASE_URL + f'/contests/{TESTING_CONTEST_ID}/problems',
+                          files={'zip': open(file_name, 'rb')},
+                          auth=USER)
     else:
         print(f'Replacing problem; pid: {pid}...')
-        r = requests.post(BASE_URL + '/contests/3/problems', data={'problem': str(pid)}, files={'zip': open(file_name, 'rb')}, auth=USER)
+        r = requests.post(BASE_URL + f'/contests/{TESTING_CONTEST_ID}/problems',
+                          data={'problem': str(pid)},
+                          files={'zip': open(file_name, 'rb')},
+                          auth=USER)
     print(f'STATUS: {r.status_code}')
     print(f'{r.text}')
     if r.status_code == 401:
@@ -50,10 +55,5 @@ def upload_problem_zip(file_name, pid: int|None):
         return pid
     return None
 
-# r = requests.get(BASE_URL + '/contests/3/problems', auth=('ejam', 'UaLgMZtr8PavGby'))
-# r = requests.get(BASE_URL + '/status', auth=('ejam', 'UaLgMZtr8PavGby'))
-# print(r.text)
-
-
-# print(r.text)
+# r = requests.get(BASE_URL + '/status', auth=USER)
 

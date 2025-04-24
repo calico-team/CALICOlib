@@ -53,6 +53,8 @@ def py_runner(src_path: str):
     return Runner([sys.executable, src_path], None)
 
 def cpp_runner(src_path: str, bin_name: str):
+    if bin_name[0] != '/':
+        bin_name = './' + bin_name
     return Runner(
             [bin_name],
             [CC, '-Wall', '-Wshadow', '-Wextra', '-O2', '-Wl,-z,stack-size=268435456', '-o', bin_name, src_path]
