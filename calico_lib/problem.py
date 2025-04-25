@@ -62,6 +62,8 @@ class Problem:
         self.sample_count = 0
         self.hidden_count = 0
 
+        self.always_skip_test_gen = False
+
         # mapping from test sets to tests included in that test set
         self.test_paths: Dict[str, list[str]] = dict()
         for subproblem in test_sets:
@@ -127,6 +129,12 @@ class Problem:
         test.subproblems = subproblems
         for subproblem in subproblems:
             self.test_paths[subproblem].append(file_path)
+
+    def add_raw_test_NO_VALIDATE(self, path, subproblems: list[str]|None = None):
+        if subproblems is None:
+            subproblems = [s.name for s in self.test_sets]
+        for subproblem in subproblems:
+            self.test_paths[subproblem].append(path)
 
     def add_sample_test(self, test: TestFileBase, name: str='', subproblems: list[str]|None = None):
         if name != '': name = '_' + name
@@ -231,13 +239,13 @@ class Problem:
         if args.auth is not None:
             set_user(tuple(args.auth.split(':')))
 
-        if not args.skip_test_gen:
+        if not args.skip_test_gen and not self.always_skip_test_gen:
             print('\n=== Creating Tests ===')
             self.create_all_tests()
 
+        print('\n=== Creating Zip ===')
+        self.create_zip()
         if args.upload_zip:
-            print('\n=== Creating Zip ===')
-            self.create_zip()
             print('\n=== Uploading ===')
             for test_set in self.test_sets:
                 lockfile = os.path.join(self.problem_dir, self.problem_name + '_' + test_set.name + '.lock')
