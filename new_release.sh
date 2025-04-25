@@ -52,9 +52,12 @@ sed -E -i "s/(__version__ = \")[0-9]+\.[0-9]+\.[0-9]+\"/\1${new_version}\"/" "$f
 git add "$file"
 git commit -m "chore: bump version to ${new_version}"
 git tag "v${new_version}"
+git push
+git push --tags
+flit publish
 
 echo "✅ Version updated: $version → $new_version"
 echo "✅ Git tag created: v${new_version}"
-echo "TODO:"
-echo "Run 'git push --tags' to push"
-echo "Run 'flit publish' to publish"
+# echo "TODO:"
+# echo "Run 'git push --tags' to push"
+# echo "Run 'flit publish' to publish"
