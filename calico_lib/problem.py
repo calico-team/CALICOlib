@@ -156,7 +156,7 @@ class Problem:
         """
         def generator(gen_fn: Callable[[], TestFileBase]):
             for _ in range(test_count):
-                self.add_hidden_test(gen_fn(), gen_fn.__name__, subproblems)
+                self.add_hidden_test(gen_fn, gen_fn.__name__, subproblems)
             return gen_fn
         return generator
 
@@ -230,6 +230,20 @@ class Problem:
                     rank_color_map[sub_test.rank],
                     )
 
+    def get_lockfile_pid(self, test_set):
+        lockfile = self.problem_name + '_' + test_set.name + '.lock'
+        if os.path.exists(lockfile):
+            with open(lockfile, 'r', encoding='utf-8') as f:
+                pid = int(f.read())
+            return pid
+        return None
+
+    def write_lockfile_pid(self, test_set, pid):
+        lockfile = self.problem_name + '_' + test_set.name + '.lock'
+        if pid is not None:
+            with open(lockfile, 'w', encoding='utf-8') as f:
+                f.write(str(pid) + '\n')
+
     def run_cli(self):
         os.chdir(self.problem_dir)
         parser = argparse.ArgumentParser(
@@ -243,6 +257,7 @@ class Problem:
         parser.add_argument('-b', '--add-to-contest', action='store_true', help='Add to contest, setting colors, scores, and other stuff.')
         parser.add_argument('-f', '--final', type=int, help='Upload to final contest. Implies -u.')
         parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
+        # parser.add_argument('-d', '--delete', type=int, help='Delete the problem on calico judge.')
 
         args = parser.parse_args()
         if args.auth is not None:
@@ -252,16 +267,14 @@ class Problem:
         if args.final is not None:
             set_contest_id(args.final)
             self.problem_name = self.problem_name + '_final'
-            # TODO fix lock prefix
-            lockfile_prefix = self.problem_name
             assert args.p_ord is not None
         else:
             self.problem_name = self.problem_name
-            lockfile_prefix = self.problem_name
 
-        if not args.skip_test_gen and not self.always_skip_test_gen:
-            print('\n=== Creating Tests ===')
-            self.create_all_tests()
+        if not args.skip_test_gen:
+            if not self.always_skip_test_gen:
+                print('\n=== Creating Tests ===')
+                self.create_all_tests()
 
             print('\n=== Creating Zip ===')
             self.create_zip('')
@@ -273,10 +286,8 @@ class Problem:
 
         i = 0
         for test_set in self.test_sets:
-            lockfile = lockfile_prefix + '_' + test_set.name + '.lock'
-            if os.path.exists(lockfile):
-                with open(lockfile, 'r', encoding='utf-8') as f:
-                    pid = int(f.read())
+            pid = self.get_lockfile_pid(test_set)
+            if pid is not None:
                 upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
             else:
                 if args.final is not None:
@@ -297,13 +308,12 @@ class Problem:
                             label,
                             rank_color_map[test_set.rank],
                             )
+                    self.write_lockfile_pid(test_set, pid)
                     upload_problem_zip(
                             get_zip_file_path(self.problem_name, test_set.name), pid)
                 else:
                     pid = upload_problem_zip(
                             get_zip_file_path(self.problem_name, test_set.name), None)
-                if pid is not None:
-                    with open(lockfile, 'w', encoding='utf-8') as f:
-                        f.write(str(pid) + '\n')
+                    self.write_lockfile_pid(test_set, pid)
             i = i + 1
 
