@@ -99,7 +99,7 @@ class Problem:
         print(*values, sep=sep, end=end, file=self._cur_file)
 
     def _add_test(self,
-                  test: TestFileBase,
+                  test_file_or_fn: TestFileBase|Callable[[], TestFileBase],
                   file_dir: str,
                   file_prefix: str,
                   subproblems: list[str]|None = None):
@@ -107,6 +107,11 @@ class Problem:
             subproblems = [s.name for s in self.test_sets]
         file_path = os.path.join(file_dir, file_prefix + '_' + subproblems[0])
         def test_generator():
+            if callable(test_file_or_fn):
+                test = test_file_or_fn()
+            else:
+                test = test_file_or_fn
+            test.subproblems = subproblems
             with open(file_path + '.in', 'w', encoding='utf-8', newline='\n') as in_file:
                 self._cur_file = in_file
                 print(f"Writing infile {file_path+'.in'}")
@@ -126,7 +131,6 @@ class Problem:
             self._cur_file = None
 
         self._all_test_generators.append(test_generator)
-        test.subproblems = subproblems
         for subproblem in subproblems:
             self.test_paths[subproblem].append(file_path)
 
@@ -141,14 +145,14 @@ class Problem:
         self._add_test(test, self._sample_path, f'{self.sample_count:02d}{name}', subproblems)
         self.sample_count += 1
 
-    def add_hidden_test(self, test: TestFileBase, name: str='', subproblems: list[str]|None = None):
+    def add_hidden_test(self, test_or_fn: TestFileBase|Callable[[], TestFileBase], name: str='', subproblems: list[str]|None = None):
         if name != '': name = '_' + name
-        self._add_test(test, self._secret_path, f'{self.hidden_count:02d}{name}', subproblems)
+        self._add_test(test_or_fn, self._secret_path, f'{self.hidden_count:02d}{name}', subproblems)
         self.hidden_count += 1
 
     def hidden_test_generator(self, test_count = 1, subproblems: list[str] = ['main']):
-        """Add a hidden test generator. Repeats to generate test_count number of test files.
-        Repeat case_per_test times for each test.
+        """A function decorator that adds a hidden test generator. Repeats to generate
+        test_count number of test files.
         """
         def generator(gen_fn: Callable[[], TestFileBase]):
             for _ in range(test_count):
@@ -162,7 +166,6 @@ class Problem:
 
     def create_all_tests(self):
         """Delete existing tests and regenerate them based on all the tests and generators added."""
-        previous_cwd = os.getcwd()
         os.chdir(self.problem_dir)
 
         try:
@@ -176,14 +179,11 @@ class Problem:
         for fn in self._all_test_generators:
             fn()
 
-        os.chdir(previous_cwd)
-
     def create_zip(self):
         """
         Create a zip for each test set. Each test set consists of data, submissions,
         and the DOMjudge metadata file.
         """
-        previous_cwd = os.getcwd()
         os.chdir(self.problem_dir)
 
         for test_set in self.test_sets:
@@ -199,8 +199,6 @@ class Problem:
                 zip_metadata(zip_file, self.problem_name, test_set.name, test_set.time_limit, self.custom_checker)
 
             print(f'Done creating zip for test set "{test_set.name}"!')
-
-        os.chdir(previous_cwd)
 
     def default_metadata(self, subproblem: str):
         """
@@ -225,6 +223,7 @@ class Problem:
         return obj
 
     def run_cli(self):
+        os.chdir(self.problem_dir)
         parser = argparse.ArgumentParser(
                         prog='CALICOLib problem CLI',
                         description='CLI interface for various actions for this problem. By default, generates and verifies test cases.',
@@ -239,6 +238,8 @@ class Problem:
         if args.auth is not None:
             set_user(tuple(args.auth.split(':')))
 
+        self.init_problem()
+
         if not args.skip_test_gen and not self.always_skip_test_gen:
             print('\n=== Creating Tests ===')
             self.create_all_tests()
@@ -248,7 +249,7 @@ class Problem:
         if args.upload_zip:
             print('\n=== Uploading ===')
             for test_set in self.test_sets:
-                lockfile = os.path.join(self.problem_dir, self.problem_name + '_' + test_set.name + '.lock')
+                lockfile = self.problem_name + '_' + test_set.name + '.lock'
                 if os.path.exists(lockfile):
                     with open(lockfile, 'r', encoding='utf-8') as f:
                         pid = int(f.read())
