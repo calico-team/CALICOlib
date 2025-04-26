@@ -305,4 +305,5 @@ class Problem:
                 if pid is not None:
                     with open(lockfile, 'w', encoding='utf-8') as f:
                         f.write(str(pid) + '\n')
+            i = i + 1
 
