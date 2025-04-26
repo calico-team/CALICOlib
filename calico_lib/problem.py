@@ -5,7 +5,7 @@ import shutil
 from typing import Dict, NamedTuple
 import zipfile
 
-from calico_lib.judge_api import set_user, upload_problem_zip
+from calico_lib.judge_api import add_problem_metadata_to_contest, set_contest_id, set_user, upload_problem_zip
 from .legacy import *
 import traceback
 import subprocess
@@ -179,15 +179,17 @@ class Problem:
         for fn in self._all_test_generators:
             fn()
 
-    def create_zip(self):
+    def create_zip(self, name_prefix='draft_'):
         """
         Create a zip for each test set. Each test set consists of data, submissions,
         and the DOMjudge metadata file.
         """
         os.chdir(self.problem_dir)
 
+        final_name = name_prefix + self.problem_name
+
         for test_set in self.test_sets:
-            file_path = get_zip_file_path(self.problem_name, test_set.name)
+            file_path = get_zip_file_path(final_name, test_set.name)
             file_path = os.path.join(self.problem_dir, file_path)
             print(f'Creating zip for test set "{test_set.name}" at "{file_path}...')
             with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
@@ -196,31 +198,37 @@ class Problem:
                     zip_file.write(file+'.ans')
 
                 zip_path(zip_file, 'submissions', test_set.name, lambda _, _2: True)
-                zip_metadata(zip_file, self.problem_name, test_set.name, test_set.time_limit, self.custom_checker)
+                zip_metadata(zip_file,
+                             final_name,
+                             test_set.name,
+                             test_set.time_limit,
+                             self.custom_checker)
 
             print(f'Done creating zip for test set "{test_set.name}"!')
 
-    def default_metadata(self, subproblem: str):
+    def add_final_metadata(self, p_num: int):
         """
-        Default metadata used to create problem.json
+        Upload metadata to contest.
         """
-        p = next(filter(lambda s: s.name == subproblem, self.test_sets))
-        assert p, 'invalid subproblem'
+        print("adding metadata")
+        i = 0
+        for sub_test in self.test_sets:
+            subproblem = sub_test.name
 
-        rank_color_map = {
-                1: '#e9e4d7',
-                2: '#ff7e34',
-                3: '#995d59',
-                4: '#000000',
-                }
-        obj = {
-                'id': self.problem_name + '_' + subproblem,
-                'label': self.problem_name + '_' + subproblem,
-                # 'name': self.problem_name + '_' + subproblem,
-                'rgb': rank_color_map[p.rank],
-                }
-
-        return obj
+            rank_color_map = {
+                    1: '#e9e4d7',
+                    2: '#ff7e34',
+                    3: '#995d59',
+                    4: '#000000',
+                    }
+            label = str(p_num)
+            if i > 0:
+                label = label + f'b{i}'
+            add_problem_metadata_to_contest(
+                    self.problem_name + '_' + subproblem,
+                    label,
+                    rank_color_map[sub_test.rank],
+                    )
 
     def run_cli(self):
         os.chdir(self.problem_dir)
@@ -232,31 +240,69 @@ class Problem:
         parser.add_argument('-u', '--upload-zip', action='store_true', help='Also generate and upload zip for the problem to the testing contest.')
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
         parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
-        # parser.add_argument('-f', '--force', help='Force')
+        parser.add_argument('-b', '--add-to-contest', action='store_true', help='Add to contest, setting colors, scores, and other stuff.')
+        parser.add_argument('-f', '--final', type=int, help='Upload to final contest. Implies -u.')
+        parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
 
         args = parser.parse_args()
         if args.auth is not None:
             set_user(tuple(args.auth.split(':')))
 
         self.init_problem()
+        if args.final is not None:
+            set_contest_id(args.final)
+            self.problem_name = self.problem_name + '_final'
+            # TODO fix lock prefix
+            lockfile_prefix = self.problem_name
+            assert args.p_ord is not None
+        else:
+            self.problem_name = self.problem_name
+            lockfile_prefix = self.problem_name
 
         if not args.skip_test_gen and not self.always_skip_test_gen:
             print('\n=== Creating Tests ===')
             self.create_all_tests()
 
-        print('\n=== Creating Zip ===')
-        self.create_zip()
-        if args.upload_zip:
+            print('\n=== Creating Zip ===')
+            self.create_zip('')
+
+        if args.final is not None or args.upload_zip:
             print('\n=== Uploading ===')
-            for test_set in self.test_sets:
-                lockfile = self.problem_name + '_' + test_set.name + '.lock'
-                if os.path.exists(lockfile):
-                    with open(lockfile, 'r', encoding='utf-8') as f:
-                        pid = int(f.read())
-                    upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+        else:
+            return
+
+        i = 0
+        for test_set in self.test_sets:
+            lockfile = lockfile_prefix + '_' + test_set.name + '.lock'
+            if os.path.exists(lockfile):
+                with open(lockfile, 'r', encoding='utf-8') as f:
+                    pid = int(f.read())
+                upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+            else:
+                if args.final is not None:
+                    print("adding metadata")
+                    subproblem = test_set.name
+
+                    rank_color_map = {
+                            1: '#e9e4d7',
+                            2: '#ff7e34',
+                            3: '#995d59',
+                            4: '#000000',
+                            }
+                    label = str(args.p_ord)
+                    if i > 0:
+                        label = label + f'b{i}'
+                    pid = add_problem_metadata_to_contest(
+                            self.problem_name + '_' + subproblem,
+                            label,
+                            rank_color_map[test_set.rank],
+                            )
+                    upload_problem_zip(
+                            get_zip_file_path(self.problem_name, test_set.name), pid)
                 else:
-                    pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), None)
-                    if pid is not None:
-                        with open(lockfile, 'w', encoding='utf-8') as f:
-                            f.write(str(pid) + '\n')
+                    pid = upload_problem_zip(
+                            get_zip_file_path(self.problem_name, test_set.name), None)
+                if pid is not None:
+                    with open(lockfile, 'w', encoding='utf-8') as f:
+                        f.write(str(pid) + '\n')
 
