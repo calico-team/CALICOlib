@@ -84,6 +84,8 @@ class Problem:
         os.makedirs(os.path.join(self.problem_dir, 'submissions', 'run_time_error'), exist_ok=True)
         os.makedirs(os.path.join(self.problem_dir, 'submissions', 'time_limit_exceeded'), exist_ok=True)
         os.makedirs(os.path.join(self.problem_dir, 'submissions', 'wrong_answer'), exist_ok=True)
+        os.makedirs(os.path.join(self.problem_dir, 'templates'), exist_ok=True)
+        os.makedirs(os.path.join(self.problem_dir, 'scripts'), exist_ok=True)
 
     def add_test_set(self, problem_name: str, rank: int, time_limit = 1, mem_limit: int = _DEFAULT_MEMLIMIT):
         self.test_sets.append(Subproblem(problem_name, rank, time_limit, mem_limit))
@@ -244,7 +246,10 @@ class Problem:
             with open(lockfile, 'w', encoding='utf-8') as f:
                 f.write(str(pid) + '\n')
 
-    def run_cli(self):
+    def run_cli(self, pre_fn: Callable[[], None]|None = None):
+        """
+        Run pre_fn before generating test cases.
+        """
         os.chdir(self.problem_dir)
         parser = argparse.ArgumentParser(
                         prog='CALICOLib problem CLI',
@@ -255,7 +260,7 @@ class Problem:
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
         parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
         parser.add_argument('-b', '--add-to-contest', action='store_true', help='Add to contest, setting colors, scores, and other stuff.')
-        parser.add_argument('-f', '--final', type=int, help='Upload to final contest. Implies -u.')
+        parser.add_argument('-f', '--final', type=int, help='Upload to final contest with the given contest ID. Implies -u. Requires -i.')
         parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
         # parser.add_argument('-d', '--delete', type=int, help='Delete the problem on calico judge.')
 
@@ -274,6 +279,9 @@ class Problem:
         if not args.skip_test_gen:
             if not self.always_skip_test_gen:
                 print('\n=== Creating Tests ===')
+                if pre_fn is not None:
+                    print('\n=== Running Tasks ===')
+                    pre_fn()
                 self.create_all_tests()
 
             print('\n=== Creating Zip ===')
