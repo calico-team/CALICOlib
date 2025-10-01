@@ -21,8 +21,10 @@ Bump version number in `__init__.py` and run `flit publish` or another build too
 
 ## Roadmap
 Problem / Test Generation / Test Verification:
+- [ ] Remove problem dir thingy, just cd
 - [ ] Support test case from file
-- [ ] Rethink API (Subproblem should be Problem and Problem should be MultipartProblem)
+- [x] Rethink API (Subproblem should be Problem and Problem should be MultipartProblem)
+- I thought about it, it's a bad idea
 
 Other stuff:
 - [ ] Upload problem to testing contest

@@ -15,11 +15,11 @@ def _request(method: str, endpoint: str, data=None, files=None):
                       files=files,
                       auth=USER)
     print(f'STATUS: {r.status_code}')
-    print(f'{r.text}')
+    print(f'{r.text[:200]}')
     if r.status_code >= 300:
         raise Exception(r.status_code)
     r = r.json()
-    print(json.dumps(r, indent=2))
+    print(json.dumps(r, indent=2)[:1000])
     return r
 
 def set_user(user_password_pair: tuple[str, str]):
