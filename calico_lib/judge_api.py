@@ -1,6 +1,8 @@
 import requests
 import json
 # from .problem import Problem
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 BASE_URL = 'https://calicojudge.com/api/v4'
 
@@ -80,6 +82,34 @@ def add_problem_metadata_to_contest(name: str, label: str, rgb: str):
     assert len(r) == 1
     return r[0]
 
+def create_contest(cid: str, name: str, start_time: datetime = datetime(2000, 1, 1, 0, 0), duration: str = '9999999:00:00'):
+    """
+    Creates a contest, check code for parameters used.
+    """
+    def to_iso8601_pacific(dt: datetime) -> str:
+        """Assume input datetime is in Pacific Time and return ISO 8601 string."""
+        pacific = ZoneInfo("America/Los_Angeles")
+        dt = dt.replace(tzinfo=pacific)
+        return dt.isoformat()
+
+    activate_time = start_time - timedelta(minutes=50)
+    data = {
+            'id': cid,
+            'name': name,
+            'start_time': to_iso8601_pacific(start_time),
+            'duration': duration,
+            'penalty_time': 10,
+            'activate_time': to_iso8601_pacific(activate_time),
+            'scoreboard_freeze_time': '+02:00:00',
+            'scoreboard_freeze_duration': '1:00:00',
+            }
+
+    data = json.dumps(data)
+    print(f'Creating contest {data}')
+    r = _request(
+            'post',
+            '/contests',
+            files={'json': ('contest.json', data)})
 
 # r = requests.get(BASE_URL + '/status', auth=USER)
 
