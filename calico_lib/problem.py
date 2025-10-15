@@ -256,11 +256,11 @@ class Problem:
                         description='CLI interface for various actions for this problem. By default, generates and verifies test cases.',
                         epilog='')
 
-        parser.add_argument('-u', '--upload-zip', action='store_true', help='Also generate and upload zip for the problem to the testing contest.')
+        parser.add_argument('-d', '--draft', type=str, help='Also generate and upload a draft zip for the problem to the contest id.')
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
         parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
-        parser.add_argument('-b', '--add-to-contest', action='store_true', help='Add to contest, setting colors, scores, and other stuff.')
-        parser.add_argument('-f', '--final', type=int, help='Upload to final contest with the given contest ID. Implies -u. Requires -i.')
+        # parser.add_argument('-b', '--add-to-contest', action='store_true', help='Add to contest, setting colors, scores, and other stuff.')
+        parser.add_argument('-f', '--final', type=int, help='Upload to final contest with the given contest ID. Requires -i.')
         parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
         # parser.add_argument('-d', '--delete', type=int, help='Delete the problem on calico judge.')
 
@@ -270,11 +270,15 @@ class Problem:
 
         self.init_problem()
         if args.final is not None:
+            assert args.draft is None
             set_contest_id(args.final)
-            self.problem_name = self.problem_name + '_final'
+            self.problem_name = self.problem_name
             assert args.p_ord is not None
         else:
-            self.problem_name = self.problem_name
+            self.problem_name = self.problem_name + '_draft'
+
+        if args.draft is not None:
+            set_contest_id(args.draft)
 
         if not args.skip_test_gen:
             if not self.always_skip_test_gen:
@@ -287,7 +291,7 @@ class Problem:
             print('\n=== Creating Zip ===')
             self.create_zip('')
 
-        if args.final is not None or args.upload_zip:
+        if args.final is not None or args.draft is not None:
             print('\n=== Uploading ===')
         else:
             return

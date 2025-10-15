@@ -8,7 +8,7 @@ BASE_URL = 'https://calicojudge.com/api/v4'
 
 USER = None
 
-CONTEST_ID = 33
+CONTEST_ID = -1
 
 def _request(method: str, endpoint: str, data=None, files=None):
     print("Request: " + method + " " + endpoint)
