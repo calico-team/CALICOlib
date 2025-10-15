@@ -45,7 +45,7 @@ def upload_to_testing_contest(problem):
     # for s in problem.test_sets:
     #     problem.default_metadata(s.name)
 
-def upload_problem_zip(file_name, pid: int|None):
+def upload_problem_zip(file_name, pid: str|None):
     data = None
     if pid is None:
         print(f'Creating problem...')

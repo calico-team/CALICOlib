@@ -236,7 +236,8 @@ class Problem:
         lockfile = self.problem_name + '_' + test_set.name + '.lock'
         if os.path.exists(lockfile):
             with open(lockfile, 'r', encoding='utf-8') as f:
-                pid = int(f.read())
+                # read and trim newline character
+                pid = f.readline()[:-1]
             return pid
         return None
 
