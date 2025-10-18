@@ -251,18 +251,17 @@ class Problem:
                         epilog='')
 
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
-        parser.add_argument('-c', '--cid', type=str, help='Add the problem to the contest id.')
-        parser.add_argument('-u', '--upload', type=str, help='Create or update the problem on the judge. Defaults to a draft version, unless -f is specified.')
+        parser.add_argument('-c', '--cid', type=str, help='Add the problem to the contest id. Impiles -u.')
+        parser.add_argument('-u', '--upload', action='store_true', help='Create or update the problem on the judge. Defaults to a draft version, unless -f is specified.')
         parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
-        parser.add_argument('-f', '--final', help='Operates on the final version.')
+        parser.add_argument('-f', '--final', action='store_true', help='Operates on the final version.')
         parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
 
         args = parser.parse_args()
         if args.auth is not None:
             set_user(tuple(args.auth.split(':')))
 
-        if args.final is not None:
-            set_contest_id(args.final)
+        if args.final:
             self.problem_name = self.problem_name
             assert args.p_ord is not None
         else:
@@ -295,7 +294,7 @@ class Problem:
             if pid is not None:
                 upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
             else:
-                if args.final is not None:
+                if args.final:
                     label = str(args.p_ord)
                     if i > 0:
                         label = label + f'b{i}'

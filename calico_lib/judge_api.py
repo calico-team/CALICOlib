@@ -53,7 +53,7 @@ def upload_problem_zip(file_name, pid: str|None) -> str:
     return pid
 
 def unlink_problem_from_contest(pid: str):
-    _ = _request('PUT', f'/contests/{CONTEST_ID}/problems/{pid}')
+    _ = _request('DELETE', f'/contests/{CONTEST_ID}/problems/{pid}')
     print(f'Unlinking problem...')
 
 def link_problem_to_contest(pid: str, label: str, rgb: str):
