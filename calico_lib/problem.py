@@ -5,7 +5,7 @@ import shutil
 from typing import Dict, NamedTuple
 import zipfile
 
-from calico_lib.judge_api import add_problem_metadata_to_contest, set_contest_id, set_user, upload_problem_zip
+from calico_lib.judge_api import add_problem_metadata_to_contest, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
 from .legacy import *
 import traceback
 import subprocess
@@ -232,15 +232,6 @@ class Problem:
                     rank_color_map[sub_test.rank],
                     )
 
-    def get_lockfile_pid(self, test_set):
-        lockfile = self.problem_name + '_' + test_set.name + '.lock'
-        if os.path.exists(lockfile):
-            with open(lockfile, 'r', encoding='utf-8') as f:
-                # read and trim newline character
-                pid = f.readline()[:-1]
-            return pid
-        return None
-
     def write_lockfile_pid(self, test_set, pid):
         lockfile = self.problem_name + '_' + test_set.name + '.lock'
         if pid is not None:
@@ -252,34 +243,33 @@ class Problem:
         Run pre_fn before generating test cases.
         """
         os.chdir(self.problem_dir)
+        self.init_problem()
+
         parser = argparse.ArgumentParser(
                         prog='CALICOLib problem CLI',
                         description='CLI interface for various actions for this problem. By default, generates and verifies test cases.',
                         epilog='')
 
-        parser.add_argument('-d', '--draft', type=str, help='Also generate and upload a draft zip for the problem to the contest id.')
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
+        parser.add_argument('-c', '--cid', type=str, help='Add the problem to the contest id.')
+        parser.add_argument('-u', '--upload', type=str, help='Create or update the problem on the judge. Defaults to a draft version, unless -f is specified.')
         parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
-        # parser.add_argument('-b', '--add-to-contest', action='store_true', help='Add to contest, setting colors, scores, and other stuff.')
-        parser.add_argument('-f', '--final', type=int, help='Upload to final contest with the given contest ID. Requires -i.')
+        parser.add_argument('-f', '--final', help='Operates on the final version.')
         parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
-        # parser.add_argument('-d', '--delete', type=int, help='Delete the problem on calico judge.')
 
         args = parser.parse_args()
         if args.auth is not None:
             set_user(tuple(args.auth.split(':')))
 
-        self.init_problem()
         if args.final is not None:
-            assert args.draft is None
             set_contest_id(args.final)
             self.problem_name = self.problem_name
             assert args.p_ord is not None
         else:
             self.problem_name = self.problem_name + '_draft'
 
-        if args.draft is not None:
-            set_contest_id(args.draft)
+        if args.cid is not None:
+            set_contest_id(args.cid)
 
         if not args.skip_test_gen:
             if not self.always_skip_test_gen:
@@ -292,41 +282,37 @@ class Problem:
             print('\n=== Creating Zip ===')
             self.create_zip('')
 
-        if args.final is not None or args.draft is not None:
+        if args.cid is not None or args.upload:
             print('\n=== Uploading ===')
         else:
             return
 
         i = 0
         for test_set in self.test_sets:
-            pid = self.get_lockfile_pid(test_set)
+            subproblem = test_set.name
+            pid = self.problem_name + '_' + subproblem
+            label = self.problem_name + '_' + subproblem
             if pid is not None:
                 upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
             else:
                 if args.final is not None:
-                    print("adding metadata")
-                    subproblem = test_set.name
-
-                    rank_color_map = {
-                            1: '#e9e4d7',
-                            2: '#ff7e34',
-                            3: '#995d59',
-                            4: '#000000',
-                            }
                     label = str(args.p_ord)
                     if i > 0:
                         label = label + f'b{i}'
-                    pid = add_problem_metadata_to_contest(
-                            self.problem_name + '_' + subproblem,
-                            label,
-                            rank_color_map[test_set.rank],
-                            )
-                    self.write_lockfile_pid(test_set, pid)
-                    upload_problem_zip(
-                            get_zip_file_path(self.problem_name, test_set.name), pid)
-                else:
-                    pid = upload_problem_zip(
-                            get_zip_file_path(self.problem_name, test_set.name), None)
-                    self.write_lockfile_pid(test_set, pid)
+                pid = upload_problem_zip(
+                        get_zip_file_path(self.problem_name, test_set.name), pid)
+            if args.cid is not None:
+                print("linking to contest")
+                try:
+                    unlink_problem_from_contest(pid)
+                except Exception:
+                    pass
+                rank_color_map = {
+                        1: '#e9e4d7',
+                        2: '#ff7e34',
+                        3: '#995d59',
+                        4: '#000000',
+                        }
+                link_problem_to_contest(pid, label, rank_color_map[test_set.rank])
             i = i + 1
 

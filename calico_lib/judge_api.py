@@ -21,7 +21,7 @@ def _request(method: str, endpoint: str, data=None, files=None):
     if r.status_code >= 300:
         raise Exception(r.status_code)
     r = r.json()
-    print(json.dumps(r, indent=2)[:1000])
+    print(json.dumps(r, indent=2))
     return r
 
 def set_user(user_password_pair: tuple[str, str]):
@@ -35,17 +35,7 @@ def set_contest_id(contest_id: int):
     global CONTEST_ID
     CONTEST_ID = contest_id
 
-def upload_to_testing_contest(problem):
-    pass
-    # problem_json = json.dumps([problem.default_metadata('main')])
-    # print(problem_json)
-    # r = requests.post(BASE_URL + '/api/v4/contests/3/problems/add-data',
-    #                   files={'data': problem_json}, auth=USER)
-    # print(r.text)
-    # for s in problem.test_sets:
-    #     problem.default_metadata(s.name)
-
-def upload_problem_zip(file_name, pid: str|None):
+def upload_problem_zip(file_name, pid: str|None) -> str:
     data = None
     if pid is None:
         print(f'Creating problem...')
@@ -53,15 +43,45 @@ def upload_problem_zip(file_name, pid: str|None):
         print(f'Replacing problem; pid: {pid}...')
         data = {'problem': str(pid), 'color': '#ffffff'}
     r = _request('post',
-                 f'/contests/{CONTEST_ID}/problems',
+                 f'/problems',
                  data=data,
                  files={'zip': open(file_name, 'rb')})
 
     print(f"problem uploaded with pid: {pid}")
     pid = r['problem_id']
+    assert pid is not None
     return pid
 
+def unlink_problem_from_contest(pid: str):
+    _ = _request('PUT', f'/contests/{CONTEST_ID}/problems/{pid}')
+    print(f'Unlinking problem...')
+
+def link_problem_to_contest(pid: str, label: str, rgb: str):
+    # TODO: support points
+    """
+    {
+      "label": "string",
+      "color": "string",
+      "rgb": "string",
+      "points": 1,
+      "lazy_eval_results": 0
+    }
+    """
+    data = {
+            'label': label,
+            'rgb': rgb,
+            }
+    # data = json.dumps(data)
+    print(f'Linking problem... {pid}')
+    _ = _request(
+            'PUT',
+            f'/contests/{CONTEST_ID}/problems/{pid}',
+            data = data)
+            # files={'data': ('problems.json', data)})
+    return
+
 def add_problem_metadata_to_contest(name: str, label: str, rgb: str):
+    """DEPRECATED"""
     """Adds the problem metadata, but not the zip"""
     # try:
     #     _request('delete', f'/contests/{CONTEST_ID}/problems/{pid}')
