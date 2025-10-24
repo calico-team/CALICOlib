@@ -1,7 +1,6 @@
 import os
 import sys
 import zipfile
-import argparse
 
 # Functions from the old calico lib.
 def get_path(is_secret, file_name='', ext=None):

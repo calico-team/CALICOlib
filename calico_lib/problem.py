@@ -6,6 +6,7 @@ from typing import Dict, NamedTuple
 import zipfile
 
 from calico_lib.judge_api import add_problem_metadata_to_contest, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
+import argparse
 from .legacy import *
 import traceback
 import subprocess

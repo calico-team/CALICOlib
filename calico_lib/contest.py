@@ -1,3 +1,4 @@
+import argparse
 from enum import Enum
 from typing import Literal, NamedTuple
 
@@ -25,3 +26,27 @@ class Contest(NamedTuple):
 
     def create_archive_contest(self):
         self._create_contest('Archive')
+
+
+def run_contest_cli(self):
+    parser = argparse.ArgumentParser(
+            prog='CALICO contest creation CLI',
+            description='CLI to create contest. Actually, it\'s just for auth',
+            epilog='')
+
+    MODES = ['NORMAL', 'ARCHIVE', 'TESTING']
+    parser.add_argument(
+            '-n', '--create', type=str.upper, choices=MODES, default='TESTING',
+            help=f"Create a new contest for this season with type. "
+            f"(default: %(default)s)"
+            )
+
+    args = parser.parse_args()
+    if args.create is not None:
+        tag = ''
+        if args.create == 'ARCHIVE':
+            tag = 'Archive'
+        elif args.create == 'TESTING':
+            tag = 'Testing'
+        self._create_contest(tag)
+
