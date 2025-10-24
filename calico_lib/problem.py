@@ -239,6 +239,38 @@ class Problem:
             with open(lockfile, 'w', encoding='utf-8') as f:
                 f.write(str(pid) + '\n')
 
+    def upload(self):
+        for test_set in self.test_sets:
+            pid = self.problem_name + '_' + test_set.name
+            pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+
+    def link_to_contest(self, ordinal = -1):
+        """
+        Link to contest, ordinal is used for tag (1 if this is the first problem, -1 to use pid as tag).
+        """
+        i = 0
+        for test_set in self.test_sets:
+            pid = self.problem_name + '_' + test_set.name
+            label = self.problem_name + '_' + test_set.name
+            print("== Linking to Contest ==")
+            try:
+                unlink_problem_from_contest(pid)
+            except Exception:
+                pass
+            rank_color_map = {
+                    1: '#e9e4d7',
+                    2: '#ff7e34',
+                    3: '#995d59',
+                    4: '#000000',
+                    }
+            if ordinal != -1:
+                label = str(ordinal)
+                if i > 0:
+                    label = label + f'b{i}'
+            link_problem_to_contest(pid, label, rank_color_map[test_set.rank])
+            i = i + 1
+
+
     def run_cli(self, pre_fn: Callable[[], None]|None = None):
         """
         Run pre_fn before generating test cases.
@@ -252,7 +284,7 @@ class Problem:
                         epilog='')
 
         parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
-        parser.add_argument('-c', '--cid', type=str, help='Add the problem to the contest id. Impiles -u.')
+        parser.add_argument('-c', '--cid', type=str, help='Add the problem to the contest id.')
         parser.add_argument('-u', '--upload', action='store_true', help='Create or update the problem on the judge. Defaults to a draft version, unless -f is specified.')
         parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
         parser.add_argument('-f', '--final', action='store_true', help='Operates on the final version.')
@@ -282,37 +314,13 @@ class Problem:
             print('\n=== Creating Zip ===')
             self.create_zip('')
 
-        if args.cid is not None or args.upload:
-            print('\n=== Uploading ===')
-        else:
-            return
+        if args.upload:
+            print('=== Uploading Problem Zip ===')
+            self.upload()
 
-        i = 0
-        for test_set in self.test_sets:
-            subproblem = test_set.name
-            pid = self.problem_name + '_' + subproblem
-            label = self.problem_name + '_' + subproblem
-            if pid is not None:
-                upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+        if args.cid is not None:
+            print('=== Linking to Contest ===')
+            if args.p_ord is None:
+                self.link_to_contest()
             else:
-                if args.final:
-                    label = str(args.p_ord)
-                    if i > 0:
-                        label = label + f'b{i}'
-                pid = upload_problem_zip(
-                        get_zip_file_path(self.problem_name, test_set.name), pid)
-            if args.cid is not None:
-                print("linking to contest")
-                try:
-                    unlink_problem_from_contest(pid)
-                except Exception:
-                    pass
-                rank_color_map = {
-                        1: '#e9e4d7',
-                        2: '#ff7e34',
-                        3: '#995d59',
-                        4: '#000000',
-                        }
-                link_problem_to_contest(pid, label, rank_color_map[test_set.rank])
-            i = i + 1
-
+                self.link_to_contest(args.p_ord)
