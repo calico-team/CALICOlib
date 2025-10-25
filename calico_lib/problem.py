@@ -55,6 +55,8 @@ class Problem:
     problem_dir: str
     custom_checker: None|str
 
+    _cli_func: Callable|None = None
+
     def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = []):
         self.problem_name = problem_name
         self.test_sets = test_sets
@@ -288,50 +290,5 @@ class Problem:
         """
         if pre_fn is not None:
             self.pre_fn = pre_fn
-
-        os.chdir(self.problem_dir)
-        self.init_problem()
-
-        parser = argparse.ArgumentParser(
-                        prog='CALICOLib problem CLI',
-                        description='CLI interface for various actions for this problem. By default, generates and verifies test cases.',
-                        epilog='')
-
-        parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
-        parser.add_argument('-c', '--cid', type=str, help='Add the problem to the contest id.')
-        parser.add_argument('-u', '--upload', action='store_true', help='Create or update the problem on the judge. Defaults to a draft version, unless -f is specified.')
-        parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
-        parser.add_argument('-f', '--final', action='store_true', help='Operates on the final version.')
-        parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
-
-        args = parser.parse_args()
-        if args.auth is not None:
-            set_user(tuple(args.auth.split(':')))
-
-        if args.final:
-            self.problem_name = self.problem_name
-            assert args.p_ord is not None
-        else:
-            self.problem_name = self.problem_name + '_draft'
-
-        if args.cid is not None:
-            set_contest_id(args.cid)
-
-        if not args.skip_test_gen:
-            if not self.always_skip_test_gen:
-                print('\n=== Creating Tests ===')
-                self.create_all_tests()
-
-            print('\n=== Creating Zip ===')
-            self.create_zip('')
-
-        if args.upload:
-            print('=== Uploading Problem Zip ===')
-            self.upload()
-
-        if args.cid is not None:
-            print('=== Linking to Contest ===')
-            if args.p_ord is None:
-                self.link_to_contest()
-            else:
-                self.link_to_contest(args.p_ord)
+        assert self._cli_func is not None
+        self._cli_func()

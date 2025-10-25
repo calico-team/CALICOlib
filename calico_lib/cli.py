@@ -36,8 +36,7 @@ def run_cli(obj: Contest|Problem):
         parser.print_help()
         return
 
-    if args.create is not None:
-        assert isinstance(obj, Contest)
+    if isinstance(obj, Contest) and args.create is not None:
         tag = ''
         if args.create == 'ARCHIVE':
             tag = 'Archive'
@@ -47,14 +46,14 @@ def run_cli(obj: Contest|Problem):
         return
 
     target_problem = None
-    if args.target_problem is not None:
+    if isinstance(obj, Problem):
+        target_problem = obj
+    elif args.target_problem is not None:
         assert isinstance(obj, Contest)
         for i in obj.problems:
             if i.problem_name == args.target_problem:
                 target_problem = i
                 break
-    if isinstance(obj, Problem):
-        target_problem = obj
 
     if args.auth is not None:
         set_user(tuple(args.auth.split(':')))
@@ -92,3 +91,4 @@ def run_cli(obj: Contest|Problem):
         else:
             target_problem.link_to_contest(args.p_ord)
 
+Problem._cli_func = run_cli
