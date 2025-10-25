@@ -1,12 +1,15 @@
 import argparse
-from enum import Enum
-from typing import Literal, NamedTuple
+from dataclasses import dataclass, field
+from typing import List, Literal
 
-from calico_lib.judge_api import create_contest
+from .judge_api import create_contest
+from .problem import Problem
 
-class Contest(NamedTuple):
+@dataclass
+class Contest():
     quarter: Literal['fa']|Literal['sp']
     year: str
+    problems: List[Problem] = field(default_factory=list)
 
     def _create_contest(self, tag = ''):
         cid = 'calico-' + self.quarter + self.year + '-' + tag.lower()
@@ -26,27 +29,4 @@ class Contest(NamedTuple):
 
     def create_archive_contest(self):
         self._create_contest('Archive')
-
-
-def run_contest_cli(self):
-    parser = argparse.ArgumentParser(
-            prog='CALICO contest creation CLI',
-            description='CLI to create contest. Actually, it\'s just for auth',
-            epilog='')
-
-    MODES = ['NORMAL', 'ARCHIVE', 'TESTING']
-    parser.add_argument(
-            '-n', '--create', type=str.upper, choices=MODES, default='TESTING',
-            help=f"Create a new contest for this season with type. "
-            f"(default: %(default)s)"
-            )
-
-    args = parser.parse_args()
-    if args.create is not None:
-        tag = ''
-        if args.create == 'ARCHIVE':
-            tag = 'Archive'
-        elif args.create == 'TESTING':
-            tag = 'Testing'
-        self._create_contest(tag)
 

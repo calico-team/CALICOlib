@@ -3,9 +3,10 @@ from collections.abc import Callable, Collection
 import os
 import shutil
 from typing import Dict, NamedTuple
+from warnings import deprecated
 import zipfile
 
-from calico_lib.judge_api import add_problem_metadata_to_contest, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
+from .judge_api import add_problem_metadata_to_contest, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
 import argparse
 from .legacy import *
 import traceback
@@ -64,6 +65,7 @@ class Problem:
         self.hidden_count = 0
 
         self.always_skip_test_gen = False
+        self.pre_fn = None
 
         # mapping from test sets to tests included in that test set
         self.test_paths: Dict[str, list[str]] = dict()
@@ -163,6 +165,10 @@ class Problem:
             return gen_fn
         return generator
 
+    def pre_gen_fn(self, fn: Callable[[], None]):
+        self.pre_fn = fn
+        return fn
+
     def test_validator(self, validator: Callable[[Collection[TestFileBase]], None]):
         self._test_validator = validator
         return validator
@@ -179,6 +185,10 @@ class Problem:
             pass
         os.makedirs(self._sample_path, exist_ok=True)
         os.makedirs(self._secret_path, exist_ok=True)
+
+        if self.pre_fn is not None:
+            print('\nRunning pre generation tasks...')
+            self.pre_fn()
         for fn in self._all_test_generators:
             fn()
 
@@ -253,10 +263,10 @@ class Problem:
             pid = self.problem_name + '_' + test_set.name
             label = self.problem_name + '_' + test_set.name
             print("== Linking to Contest ==")
-            try:
-                unlink_problem_from_contest(pid)
-            except Exception:
-                pass
+            # try:
+            #     unlink_problem_from_contest(pid)
+            # except Exception:
+            #     pass
             rank_color_map = {
                     1: '#e9e4d7',
                     2: '#ff7e34',
@@ -271,10 +281,14 @@ class Problem:
             i = i + 1
 
 
+    @deprecated("Use 'from calico_lib import run_cli' instead.")
     def run_cli(self, pre_fn: Callable[[], None]|None = None):
         """
         Run pre_fn before generating test cases.
         """
+        if pre_fn is not None:
+            self.pre_fn = pre_fn
+
         os.chdir(self.problem_dir)
         self.init_problem()
 
@@ -306,9 +320,6 @@ class Problem:
         if not args.skip_test_gen:
             if not self.always_skip_test_gen:
                 print('\n=== Creating Tests ===')
-                if pre_fn is not None:
-                    print('\n=== Running Tasks ===')
-                    pre_fn()
                 self.create_all_tests()
 
             print('\n=== Creating Zip ===')
