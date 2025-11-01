@@ -104,7 +104,8 @@ def add_problem_metadata_to_contest(name: str, label: str, rgb: str):
 
 def create_contest(cid: str, name: str, start_time: datetime = datetime(2000, 1, 1, 0, 0), duration: str = '9999999:00:00'):
     """
-    Creates a contest, check code for parameters used.
+    Creates a contest, check code for parameters used. Assumes datetime object is in
+    Pacific time.
     """
     def to_iso8601_pacific(dt: datetime) -> str:
         """Assume input datetime is in Pacific Time and return ISO 8601 string."""

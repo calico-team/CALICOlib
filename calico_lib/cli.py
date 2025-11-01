@@ -40,9 +40,12 @@ def run_cli(obj: Contest|Problem):
         tag = ''
         if args.create == 'ARCHIVE':
             tag = 'Archive'
+            obj.create_contest(tag, True)
         elif args.create == 'TESTING':
             tag = 'Testing'
-        obj._create_contest(tag)
+            obj.create_contest(tag, True)
+        else:
+            obj.create_contest(tag, False)
         return
 
     target_problem = None
