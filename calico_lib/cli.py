@@ -1,5 +1,7 @@
 import os
 import sys
+
+from calico_lib.config import load_secrets, load_configs
 from .contest import Contest
 from .judge_api import set_contest_id, set_user
 from .problem import Problem
@@ -19,12 +21,19 @@ def run_cli(obj: Contest|Problem):
     parser.add_argument('-f', '--final', action='store_true', help='Operates on the final version.')
     parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
 
+    try:
+        if isinstance(obj, Contest):
+            load_secrets()
+        elif isinstance(obj, Problem):
+            load_secrets('../secrets.toml')
+            load_configs('../config.toml')
+    except Exception as e:
+        print('Warning: unable to load some configs...' + str(e))
+
     if isinstance(obj, Contest):
-        MODES = ['NORMAL', 'ARCHIVE', 'TESTING']
         parser.add_argument(
-                '-n', '--create', nargs='?', type=str.upper, choices=MODES, const='TESTING',
-                help=f"Create a new contest for this season with type. "
-                f"(default: %(default)s)"
+                '-n', '--create', action='store_true',
+                help=f"Create the contest."
                 )
         parser.add_argument(
                 '-p', '--target-problem', type=str,
@@ -36,16 +45,8 @@ def run_cli(obj: Contest|Problem):
         parser.print_help()
         return
 
-    if isinstance(obj, Contest) and args.create is not None:
-        tag = ''
-        if args.create == 'ARCHIVE':
-            tag = 'Archive'
-            obj.create_contest(tag, True)
-        elif args.create == 'TESTING':
-            tag = 'Testing'
-            obj.create_contest(tag, True)
-        else:
-            obj.create_contest(tag, False)
+    if isinstance(obj, Contest) and args.create:
+        obj.create_contest()
         return
 
     target_problem = None

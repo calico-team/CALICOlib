@@ -6,7 +6,7 @@ from typing import Dict, NamedTuple
 from warnings import deprecated
 import zipfile
 
-from .judge_api import add_problem_metadata_to_contest, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
+from .judge_api import add_problem_metadata_to_contest, get_problem, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
 import argparse
 from .legacy import *
 import traceback
@@ -49,6 +49,14 @@ class Subproblem(NamedTuple):
     rank: int
     time_limit: int = 1
     mem_limit: int = _DEFAULT_MEMLIMIT
+    def color(self):
+        rank_color_map = {
+                1: '#e9e4d7',
+                2: '#ff7e34',
+                3: '#995d59',
+                4: '#000000',
+                }
+        return rank_color_map[self.rank]
 
 class Problem:
     test_sets: list[Subproblem]
@@ -230,12 +238,6 @@ class Problem:
         for sub_test in self.test_sets:
             subproblem = sub_test.name
 
-            rank_color_map = {
-                    1: '#e9e4d7',
-                    2: '#ff7e34',
-                    3: '#995d59',
-                    4: '#000000',
-                    }
             label = str(p_num)
             if i > 0:
                 label = label + f'b{i}'
@@ -251,10 +253,21 @@ class Problem:
             with open(lockfile, 'w', encoding='utf-8') as f:
                 f.write(str(pid) + '\n')
 
-    def upload(self):
+    def upload(self, ordinal = -1):
         for test_set in self.test_sets:
             pid = self.problem_name + '_' + test_set.name
+            label = pid
+            judge_problem = get_problem(pid)
+            i = 0
+            if judge_problem is None:
+                print('problem not found... creating problem')
+                if ordinal != -1:
+                    label = str(ordinal)
+                    if i > 0:
+                        label = label + f'b{i}'
+                add_problem_metadata_to_contest(pid, label, test_set.color())
             pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+            i = i + 1
 
     def link_to_contest(self, ordinal = -1):
         """
@@ -263,23 +276,17 @@ class Problem:
         i = 0
         for test_set in self.test_sets:
             pid = self.problem_name + '_' + test_set.name
-            label = self.problem_name + '_' + test_set.name
+            label = pid
             print("== Linking to Contest ==")
             # try:
             #     unlink_problem_from_contest(pid)
             # except Exception:
             #     pass
-            rank_color_map = {
-                    1: '#e9e4d7',
-                    2: '#ff7e34',
-                    3: '#995d59',
-                    4: '#000000',
-                    }
             if ordinal != -1:
                 label = str(ordinal)
                 if i > 0:
                     label = label + f'b{i}'
-            link_problem_to_contest(pid, label, rank_color_map[test_set.rank])
+            link_problem_to_contest(pid, label, test_set.color())
             i = i + 1
 
 

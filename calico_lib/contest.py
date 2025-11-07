@@ -9,21 +9,14 @@ from calico_lib import judge_api
 
 @dataclass
 class Contest():
-    quarter: Literal['fa']|Literal['sp']
-    year: str
+    contest_id: str
+    name: str
     start_time: datetime = datetime(2000, 1, 1, 0, 0)
     duration: str = '9999999:00:00'
     problems: List[Problem] = field(default_factory=list)
 
-    def create_contest(self, tag, perma: bool):
-        cid = 'calico-' + self.quarter + self.year + '-' + tag.lower()
-        quarter_long = 'Fall' if self.quarter == 'fa' else 'Spring'
-        tag_str = '' if len(tag) == 0 else '[' + tag + '] '
-        name = tag_str + 'CALICO ' +  quarter_long + ' \'' + self.year
-        if perma:
-            create_contest(cid, name)
-        else:
-            create_contest(cid, name, self.start_time, self.duration)
+    def create_contest(self):
+        create_contest(self.contest_id, self.name, self.start_time, self.duration)
         print('=======================')
         print('TODO: make the contest private, not available for all teams, and add the appropriate groups.')
         print('=======================')
