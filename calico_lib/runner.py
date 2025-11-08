@@ -28,20 +28,22 @@ class Runner:
     def exec(self):
         try:
             out = subprocess.check_output(self.run_cmd).decode()
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
             print(f'Runner failed to run:')
             print(self)
-            exit(1)
+            print(e)
+            raise
         return out
 
     def exec_file(self, infile: str):
         with open(infile, encoding='utf-8', newline='\n') as file:
             try:
                 out = subprocess.check_output(self.run_cmd, stdin=file, encoding='utf-8')
-            except subprocess.CalledProcessError:
+            except subprocess.CalledProcessError as e:
                 print(f'Runner failed to run:')
                 print(self)
-                exit(1)
+                print(e)
+                raise
             return out
 
     def compile(self):
