@@ -57,7 +57,8 @@ def cpp_runner(src_path: str, bin_name: str):
         bin_name = './' + bin_name
     return Runner(
             [bin_name],
-            [CC, '-Wall', '-Wshadow', '-Wextra', '-O2', '-Wl,-z,stack-size=268435456', '-o', bin_name, src_path]
+            # '-Wl,-z,stack-size=268435456' for stack size maybe
+            [CC, '-Wall', '-Wshadow', '-Wextra', '-O2', '-o', bin_name, src_path]
             )
 
 def compile_all():
