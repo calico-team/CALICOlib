@@ -26,15 +26,12 @@ def run_cli(obj: Contest|Problem):
     parser.add_argument('-f', '--final', action='store_true', help='Don\'t append _draft to the problem id.')
     # parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
 
-    try:
-        if isinstance(obj, Contest):
-            load_secrets()
-            set_contest_id(obj.contest_id)
-        elif isinstance(obj, Problem):
-            load_secrets('../secrets.toml')
-            load_configs('../config.toml')
-    except Exception as e:
-        print('Warning: unable to load some configs...' + str(e))
+    if isinstance(obj, Contest):
+        load_secrets()
+        set_contest_id(obj.contest_id)
+    elif isinstance(obj, Problem):
+        load_secrets('../secrets.toml')
+        load_configs('../config.toml')
 
     if isinstance(obj, Contest):
         parser.add_argument(
