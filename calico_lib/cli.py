@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 
 from calico_lib.config import load_secrets, load_configs
@@ -31,21 +32,25 @@ def run_cli(obj: Contest|Problem):
     # parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
 
     if isinstance(obj, Contest):
-        load_secrets()
-        set_contest_id(obj.contest_id)
-    elif isinstance(obj, Problem):
-        load_secrets('../secrets.toml')
-        load_configs('../config.toml')
-
-    if isinstance(obj, Contest):
         parser.add_argument(
                 '-n', '--create', action='store_true',
                 help="Create the contest."
                 )
         parser.add_argument(
+                '-z', '--contest-zip', action='store_true',
+                help="Create the contest folder, used for creating contest.zip."
+                )
+        parser.add_argument(
                 '-p', '--target-problem', type=str,
                 help="Operate on a specific problem."
                 )
+
+    if isinstance(obj, Contest):
+        load_secrets()
+        set_contest_id(obj.contest_id)
+    elif isinstance(obj, Problem):
+        load_secrets('../secrets.toml')
+        load_configs('../config.toml')
 
     args = parser.parse_args()
     # if isinstance(obj, Contest) and len(sys.argv) == 1:
@@ -76,6 +81,15 @@ def run_cli(obj: Contest|Problem):
 
     assert target_problems is not None
 
+    zip_dir_name = 'contest_zip_stuff'
+    if args.contest_zip:
+        try:
+            shutil.rmtree(zip_dir_name)
+        except FileNotFoundError:
+            # First time running
+            pass
+        os.makedirs(zip_dir_name)
+
     for target_problem in target_problems:
         print(f'======\n---> Operating on {target_problem.problem_name}\n======')
         os.chdir(target_problem.problem_dir)
@@ -96,6 +110,19 @@ def run_cli(obj: Contest|Problem):
 
             print('\n=== Creating Zip ===')
             target_problem.create_zip('')
+
+        def ignore(path, names):
+            # print(path, names)
+            inc = ['./data/sample', './templates']
+            if path == '.':
+                return [name for name in names if name not in ['data', 'templates']]
+            if path == './data':
+                return [name for name in names if name not in ['sample']]
+            if path in inc:
+                return []
+            return names
+        if args.contest_zip:
+            shutil.copytree('.', f'../{zip_dir_name}/{target_problem.problem_name}', ignore=ignore)
 
         if args.upload:
             print('=== Uploading Problem Zip ===')
