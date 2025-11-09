@@ -10,7 +10,9 @@ import argparse
 
 def run_cli(obj: Contest|Problem):
     desc = 'CLI interface for various actions for this problem. '\
-            'By default, generates and verifies test cases.'
+            'By default, generates and verifies test cases.' \
+            'Specify contest ID and password specified in ../config.toml, and password in ../secrets.toml, ' \
+            'or use command line arguments, which takes priority.'
     if isinstance(obj, Contest):
         desc = 'CLI interface for various actions for this contest. '\
                 'Similar to problem CLI, but operates on all problems, or a specific one.'
@@ -20,8 +22,10 @@ def run_cli(obj: Contest|Problem):
                     epilog='')
 
     parser.add_argument('-a', '--auth', help='Username and password for judge, separated by colon.')
-    parser.add_argument('-c', '--cid', type=str, help='Link the problem to the contest id.')
+    parser.add_argument('-c', '--cid', type=str, help='Specify an alternative contest id.')
     parser.add_argument('-u', '--upload', action='store_true', help='Create or update the problem on the judge. Defaults to a draft version, unless -f is specified.')
+    parser.add_argument('-l', '--link', action='store_true', help='Link the problem to the contest.')
+    # parser.add_argument('-L', '--unlink', action='store_true', help='Unlink the problem from the contest.')
     parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
     parser.add_argument('-f', '--final', action='store_true', help='Don\'t append _draft to the problem id.')
     # parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
@@ -67,6 +71,8 @@ def run_cli(obj: Contest|Problem):
 
     if args.auth is not None:
         set_user(tuple(args.auth.split(':')))
+    if args.cid is not None:
+        set_contest_id(args.cid)
 
     assert target_problems is not None
 
@@ -77,7 +83,9 @@ def run_cli(obj: Contest|Problem):
 
         if args.final:
             target_problem.problem_name = target_problem.problem_name
-            assert args.p_ord is not None
+            if args.p_ord is not None:
+                target_problem.ordinal = args.p_ord
+            assert target_problem.ordinal != -1
         else:
             target_problem.problem_name = target_problem.problem_name + '_draft'
 
@@ -93,12 +101,12 @@ def run_cli(obj: Contest|Problem):
             print('=== Uploading Problem Zip ===')
             target_problem.upload()
 
-        if args.cid is not None:
+        # if args.unlink:
+        #     assert not args.link
+        #     print('=== Unlinking from Contest ===')
+        #     target_problem.link_to_contest()
+        if args.link:
             print('=== Linking to Contest ===')
-            set_contest_id(args.cid)
-            if args.p_ord is None:
-                target_problem.link_to_contest()
-            else:
-                target_problem.link_to_contest(args.p_ord)
+            target_problem.link_to_contest()
 
 Problem._cli_func = run_cli

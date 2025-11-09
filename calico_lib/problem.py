@@ -71,6 +71,9 @@ class Problem:
         self.problem_dir = problem_dir
         self.custom_checker = None
 
+        # order of the problem in the contest. Used for label. Otherwise, label is problem_name
+        self.ordinal = -1
+
         self.sample_count = 0
         self.hidden_count = 0
 
@@ -250,7 +253,7 @@ class Problem:
                     sub_test.color(),
                     )
 
-    def upload(self, ordinal = -1):
+    def upload(self):
         for test_set in self.test_sets:
             pid = self.problem_name + '_' + test_set.name
             label = pid
@@ -258,15 +261,15 @@ class Problem:
             i = 0
             if judge_problem is None:
                 print('problem not found... creating problem')
-                if ordinal != -1:
-                    label = str(ordinal)
+                if self.ordinal != -1:
+                    label = str(self.ordinal)
                     if i > 0:
                         label = label + f'b{i}'
                 add_problem_metadata_to_contest(pid, label, test_set.color())
             pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
             i = i + 1
 
-    def link_to_contest(self, ordinal = -1):
+    def link_to_contest(self):
         """
         Link to contest, ordinal is used for tag (1 if this is the first problem, -1 to use pid as tag).
         """
@@ -279,11 +282,15 @@ class Problem:
             #     unlink_problem_from_contest(pid)
             # except Exception:
             #     pass
-            if ordinal != -1:
-                label = str(ordinal)
+            if self.ordinal != -1:
+                label = str(self.ordinal)
                 if i > 0:
                     label = label + f'b{i}'
-            link_problem_to_contest(pid, label, test_set.color())
+            judge_problem = get_problem(pid)
+            if judge_problem is None:
+                link_problem_to_contest(pid, label, test_set.color())
+            else:
+                print('Warning: problem already linked, skipping...')
             i = i + 1
 
 
