@@ -253,13 +253,14 @@ class Problem:
                     label,
                     sub_test.color(),
                     )
+            i += 1
 
     def upload(self):
+        i = 0
         for test_set in self.test_sets:
             pid = self.problem_name + '_' + test_set.name
             label = pid
             judge_problem = get_problem(pid)
-            i = 0
             if judge_problem is None:
                 print('problem not found... creating problem')
                 if self.ordinal != -1:
