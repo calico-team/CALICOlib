@@ -145,6 +145,7 @@ class Problem:
             #     # pass
             with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:
                 self._cur_file = out_file
+                print(f"Writing ans (out) file {file_path+'.ans'}")
                 test.write_test_out(file_path + '.in')
             self._cur_file = None
 
