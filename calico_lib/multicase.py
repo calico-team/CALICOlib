@@ -1,7 +1,7 @@
 from .problem import Problem, TestFileBase
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Iterable
-from typing import override
+# from typing import override
 
 class TestCaseBase(ABC):
     def __init__(self) -> None:
@@ -30,7 +30,7 @@ class MulticaseTestFile(TestFileBase):
     # def get_subproblems(self) -> list[str]:
     #     return ['bonus']
 
-    @override
+    # @override
     def write_test_in(self):
         assert self.problem != None, "Must set problem for multicase test file"
         self.problem.print_test(len(self.cases))

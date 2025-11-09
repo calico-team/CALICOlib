@@ -3,7 +3,7 @@ from collections.abc import Callable, Collection
 import os
 import shutil
 from typing import Dict, NamedTuple
-from warnings import deprecated
+# from warnings import deprecated
 import zipfile
 
 from .judge_api import add_problem_metadata_to_contest, get_problem, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
@@ -292,8 +292,11 @@ class Problem:
             i = i + 1
 
 
-    @deprecated("Use 'from calico_lib import run_cli' instead.")
+    # @deprecated("Use 'from calico_lib import run_cli' instead.")
     def run_cli(self, pre_fn: Callable[[], None]|None = None):
+        """
+        DEPRECATED
+        """
         """
         Run pre_fn before generating test cases.
         """
