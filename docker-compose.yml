@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  my_service:
+    build: .  # Specifies the build context (current directory, where Dockerfile resides)
+    # Alternatively, if your Dockerfile is named differently, use:
+    # build:
+    #   context: .
+    #   dockerfile: MyCustomDockerfile
