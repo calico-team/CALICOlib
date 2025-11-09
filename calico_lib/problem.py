@@ -161,6 +161,8 @@ class Problem:
         self.sample_count += 1
 
     def add_hidden_test(self, test_or_fn: TestFileBase|Callable[[], TestFileBase], name: str='', subproblems: list[str]|None = None):
+        if isinstance(test_or_fn, TestFileBase):
+            print(f'[Warning]: {self.problem_name} hidden test added in place...')
         if name != '': name = '_' + name
         self._add_test(test_or_fn, self._secret_path, f'{self.hidden_count:02d}{name}', subproblems)
         self.hidden_count += 1
@@ -296,6 +298,7 @@ class Problem:
         Run pre_fn before generating test cases.
         """
         if pre_fn is not None:
+            assert self.pre_fn is None
             self.pre_fn = pre_fn
         assert self._cli_func is not None
         self._cli_func()

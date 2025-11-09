@@ -47,9 +47,9 @@ def run_cli(obj: Contest|Problem):
                 )
 
     args = parser.parse_args()
-    if isinstance(obj, Contest) and len(sys.argv) == 1:
-        parser.print_help()
-        return
+    # if isinstance(obj, Contest) and len(sys.argv) == 1:
+    #     parser.print_help()
+    #     return
 
     if isinstance(obj, Contest) and args.create:
         obj.create_contest()
@@ -74,7 +74,7 @@ def run_cli(obj: Contest|Problem):
     assert target_problems is not None
 
     for target_problem in target_problems:
-        print(f'---> Operating on {target_problem.problem_name}')
+        print(f'======\n---> Operating on {target_problem.problem_name}\n======')
         os.chdir(target_problem.problem_dir)
         target_problem.init_problem()
 
