@@ -97,8 +97,8 @@ def run_cli(obj: Contest|Problem):
 
         if args.final:
             target_problem.problem_name = target_problem.problem_name
-            if args.p_ord is not None:
-                target_problem.ordinal = args.p_ord
+            # if args.p_ord is not None:
+            #     target_problem.ordinal = args.p_ord
             assert target_problem.ordinal != -1
         else:
             target_problem.problem_name = target_problem.problem_name + '_draft'
