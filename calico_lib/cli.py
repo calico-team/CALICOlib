@@ -82,7 +82,8 @@ def run_cli(obj: Contest|Problem):
     assert target_problems is not None
 
     zip_dir_name = 'contest_zip_stuff'
-    if args.contest_zip:
+
+    if isinstance(obj, Contest) and args.contest_zip:
         try:
             shutil.rmtree(zip_dir_name)
         except FileNotFoundError:
@@ -121,7 +122,7 @@ def run_cli(obj: Contest|Problem):
             if path in inc:
                 return []
             return names
-        if args.contest_zip:
+        if isinstance(obj, Contest) and args.contest_zip:
             shutil.copytree('.', f'../{zip_dir_name}/{target_problem.problem_name}', ignore=ignore)
 
         if args.upload:
