@@ -233,6 +233,7 @@ class Problem:
 
     def add_final_metadata(self, p_num: int):
         """
+        DEPRECATED:
         Upload metadata to contest.
         """
         print("adding metadata")
@@ -246,14 +247,8 @@ class Problem:
             add_problem_metadata_to_contest(
                     self.problem_name + '_' + subproblem,
                     label,
-                    rank_color_map[sub_test.rank],
+                    sub_test.color(),
                     )
-
-    def write_lockfile_pid(self, test_set, pid):
-        lockfile = self.problem_name + '_' + test_set.name + '.lock'
-        if pid is not None:
-            with open(lockfile, 'w', encoding='utf-8') as f:
-                f.write(str(pid) + '\n')
 
     def upload(self, ordinal = -1):
         for test_set in self.test_sets:
