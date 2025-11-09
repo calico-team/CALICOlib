@@ -41,7 +41,7 @@ def set_contest_id(contest_id: str):
 def upload_problem_zip(file_name, pid: str|None) -> str:
     data = None
     if pid is None:
-        print(f'Creating problem...')
+        print('Creating problem...')
     else:
         print(f'Replacing problem; pid: {pid}...')
         data = {'problem': str(pid), 'color': '#ffffff'}
@@ -57,7 +57,7 @@ def upload_problem_zip(file_name, pid: str|None) -> str:
 
 def unlink_problem_from_contest(pid: str):
     _ = _request('DELETE', f'/contests/{CONTEST_ID}/problems/{pid}')
-    print(f'Unlinking problem...')
+    print('Unlinking problem...')
 
 def link_problem_to_contest(pid: str, label: str, rgb: str):
     # TODO: support points

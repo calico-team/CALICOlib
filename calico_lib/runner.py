@@ -29,7 +29,7 @@ class Runner:
         try:
             out = subprocess.check_output(self.run_cmd).decode()
         except subprocess.CalledProcessError as e:
-            print(f'Runner failed to run:')
+            print('Runner failed to run:')
             print(self)
             print(e)
             raise
@@ -40,7 +40,7 @@ class Runner:
             try:
                 out = subprocess.check_output(self.run_cmd, stdin=file, encoding='utf-8')
             except subprocess.CalledProcessError as e:
-                print(f'Runner failed to run:')
+                print('Runner failed to run:')
                 print(self)
                 print(e)
                 raise

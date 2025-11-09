@@ -39,11 +39,11 @@ def run_cli(obj: Contest|Problem):
     if isinstance(obj, Contest):
         parser.add_argument(
                 '-n', '--create', action='store_true',
-                help=f"Create the contest."
+                help="Create the contest."
                 )
         parser.add_argument(
                 '-p', '--target-problem', type=str,
-                help=f"Operate on a specific problem."
+                help="Operate on a specific problem."
                 )
 
     args = parser.parse_args()

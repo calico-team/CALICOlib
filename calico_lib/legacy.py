@@ -76,7 +76,7 @@ def zip_path(zip_file, path, test_set_name, is_file_in_test_set):
                 zip_path = os.path.relpath(os.path.join(root, file), os.path.join(path, '..'))
                 zip_file.write(file_path, zip_path)
 
-    print(f'Done!')
+    print('Done!')
 
 
 def zip_metadata(zip_file,
