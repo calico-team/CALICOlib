@@ -10,7 +10,7 @@ Alternatively, install the development version using flit.
 brew install flit # or another package manager like pip or pipx
 git clone https://github.com/calico-team/CALICOlib.git
 cd CALICOlib
-flit install --symlink
+PIP_BREAK_SYSTEM_PACKAGES=1 flit install --symlink
 ```
 
 ## Quick Start
