@@ -42,6 +42,7 @@ class Runner:
             except subprocess.CalledProcessError as e:
                 print('Runner failed to run:')
                 print(self)
+                print('On file:', infile)
                 print(e)
                 raise
             return out
