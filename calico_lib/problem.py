@@ -171,7 +171,7 @@ class Problem:
         self._add_test(test_or_fn, self._secret_path, f'{self.hidden_count:02d}{name}', subproblems)
         self.hidden_count += 1
 
-    def hidden_test_generator(self, test_count = 1, subproblems: list[str] = ['main']):
+    def hidden_test_generator(self, test_count = 1, subproblems: list[str]|None = None):
         """A function decorator that adds a hidden test generator. Repeats to generate
         test_count number of test files.
         """
@@ -304,6 +304,7 @@ class Problem:
         """
         Run pre_fn before generating test cases.
         """
+        print('Warning: using deprecated function..., use "from calico_lib import run_cli" instead.')
         if pre_fn is not None:
             assert self.pre_fn is None
             self.pre_fn = pre_fn
