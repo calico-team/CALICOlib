@@ -29,7 +29,7 @@ def run_cli(obj: Contest|Problem):
     # parser.add_argument('-L', '--unlink', action='store_true', help='Unlink the problem from the contest.')
     parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
     parser.add_argument('-f', '--final', action='store_true', help='Don\'t append _draft to the problem id.')
-    # parser.add_argument('-i', '--p-ord', type=int, help='Problem order.')
+    parser.add_argument('-i', '--p-ord', type=int, help='Problem label.')
 
     if isinstance(obj, Contest):
         parser.add_argument(
@@ -98,9 +98,9 @@ def run_cli(obj: Contest|Problem):
 
         if args.final:
             target_problem.problem_name = target_problem.problem_name
-            # if args.p_ord is not None:
-            #     target_problem.ordinal = args.p_ord
-            assert target_problem.ordinal != -1
+            if args.p_ord is not None:
+                target_problem.label_prefix = args.p_ord
+            assert target_problem.label_prefix != -1
         else:
             target_problem.problem_name = target_problem.problem_name + '_draft'
 

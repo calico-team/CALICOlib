@@ -72,7 +72,7 @@ class Problem:
         self.custom_checker = None
 
         # order of the problem in the contest. Used for label. Otherwise, label is problem_name
-        self.ordinal = -1
+        self.label_prefix: int|str = -1
 
         self.sample_count = 0
         self.hidden_count = 0
@@ -263,8 +263,8 @@ class Problem:
             judge_problem = get_problem(pid)
             if judge_problem is None:
                 print('problem not found... creating problem')
-                if self.ordinal != -1:
-                    label = str(self.ordinal)
+                if self.label_prefix != -1:
+                    label = str(self.label_prefix)
                     if i > 0:
                         label = label + f'b{i}'
                 add_problem_metadata_to_contest(pid, label, test_set.color())
@@ -273,7 +273,7 @@ class Problem:
 
     def link_to_contest(self):
         """
-        Link to contest, ordinal is used for tag (1 if this is the first problem, -1 to use pid as tag).
+        Link to contest, label_prefix is used for tag (1 if this is the first problem, -1 to use pid as tag).
         """
         i = 0
         for test_set in self.test_sets:
@@ -284,8 +284,8 @@ class Problem:
             #     unlink_problem_from_contest(pid)
             # except Exception:
             #     pass
-            if self.ordinal != -1:
-                label = str(self.ordinal)
+            if self.label_prefix != -1:
+                label = str(self.label_prefix)
                 if i > 0:
                     label = label + f'b{i}'
             judge_problem = get_problem(pid)
