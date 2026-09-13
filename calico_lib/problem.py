@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection
+import hashlib
 import os
+import random
 import shutil
 from typing import Dict, NamedTuple
 # from warnings import deprecated
@@ -68,12 +70,13 @@ class Problem:
 
     _cli_func: Callable|None = None
 
-    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = [], solution: Runner | None = None):
+    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = [], solution: Runner | None = None, seed: str | None = None):
         self.problem_name = problem_name
         self.test_sets = test_sets
-        self.problem_dir = problem_dir
+        self.problem_dir = os.path.abspath(problem_dir)
         self.custom_checker = None
         self.solution = solution
+        self.seed = seed if seed is not None else problem_name
 
         # order of the problem in the contest. Used for label. Otherwise, label is problem_name
         self.label_prefix: int|str = -1
@@ -113,6 +116,11 @@ class Problem:
         # TODO: confirm newline behavior on the judge platform (solution output trailing newline).
         assert self.solution is not None, "No solution configured for this problem"
         return self.solution.exec_file(infile)
+
+    def _test_seed(self, index: int, file_path: str) -> int:
+        """Return a stable per-test integer seed, derived from the problem seed."""
+        key = f"{self.seed}:{index}:{os.path.basename(file_path)}".encode()
+        return int.from_bytes(hashlib.sha256(key).digest()[:8], 'big')
 
     def _add_test(self,
                   test_file_or_fn: TestFileBase|Callable[[], TestFileBase],
@@ -168,17 +176,38 @@ class Problem:
         self._test_validator = validator
         return validator
 
-    def create_all_tests(self, n_jobs: int | None = None):
-        """Delete existing tests and regenerate them based on all the tests and generators added."""
+    def clean_test_data(self) -> None:
+        """Remove generated test data and this problem's zips.
+
+        Deletes ``data/sample`` and ``data/secret`` (recreated by
+        ``create_all_tests``) and any ``*.zip`` in ``problem_dir`` whose name
+        ends with ``_<test_set_name>``. Call this once before launching sharded
+        workers: ``create_all_tests(shard=...)`` skips the wipe so sibling
+        shards don't clobber each other.
+        """
+        for path in (self._sample_path, self._secret_path):
+            shutil.rmtree(os.path.join(self.problem_dir, path), ignore_errors=True)
+
+        for name in os.listdir(self.problem_dir):
+            if not name.endswith('.zip'):
+                continue
+            stem = name[:-len('.zip')]
+            if any(stem.endswith('_' + test_set.name) for test_set in self.test_sets):
+                os.remove(os.path.join(self.problem_dir, name))
+
+    def create_all_tests(self, n_jobs: int | None = None, shard: tuple[int, int] | None = None):
+        """Delete existing tests and regenerate them from all added tests.
+
+        Runs three phases per test: generate the input, validate it, then
+        generate the answer. ``shard=(i, n)`` limits generation to tests whose
+        index ``% n == i``; in that case the data/zips are not wiped first (the
+        driver must call ``clean_test_data()`` once before spawning workers).
+        """
         # TODO(n_jobs): parallelize Phase 3 (solution runs) across n_jobs workers.
         os.chdir(self.problem_dir)
 
-        try:
-            shutil.rmtree(self._sample_path)
-            shutil.rmtree(self._secret_path)
-        except FileNotFoundError:
-            # First time running
-            pass
+        if shard is None:
+            self.clean_test_data()
         os.makedirs(self._sample_path, exist_ok=True)
         os.makedirs(self._secret_path, exist_ok=True)
 
@@ -187,8 +216,14 @@ class Problem:
             self.pre_fn()
 
         # Materialize test instances (factories must run after pre_fn/seed).
+        jobs = list(enumerate(self._all_tests))
+        if shard is not None:
+            i, n = shard
+            jobs = [(index, job) for index, job in jobs if index % n == i]
+
         tests = []
-        for test_or_fn, file_path, subproblems in self._all_tests:
+        for index, (test_or_fn, file_path, subproblems) in jobs:
+            random.seed(self._test_seed(index, file_path))
             test = test_or_fn() if callable(test_or_fn) else test_or_fn
             test.subproblems = subproblems
             test.problem = self

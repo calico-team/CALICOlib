@@ -35,11 +35,8 @@ p = Problem(
         test_sets=[
             Subproblem('main', rank=1),
         ],
-        solution=solution)
-
-@p.pre_gen_fn
-def pre_gen():
-    random.seed('6')
+        solution=solution,
+        seed='6')
 
 class TestFile(TestFileBase):
     def __init__(self, cases: Iterable[TestCase]) -> None:

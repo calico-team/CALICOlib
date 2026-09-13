@@ -166,6 +166,12 @@ This is portable (re-exec, no pickle) and requires the user's `main.py` to have
 the usual `if __name__ == '__main__':` guard. The library stays pickle-agnostic:
 it just answers "generate tests matching `index % n == i`."
 
+Shard workers skip the data/zips wipe (otherwise sibling shards would clobber
+each other), so the driver must clean once before spawning them. The library
+exposes `Problem.clean_test_data()` for this: it removes `data/sample`,
+`data/secret`, and any `*.zip` in the problem dir whose name ends with
+`_<test_set_name>`. A driver calls it once, then launches the workers.
+
 ## Disk-based packaging
 
 `create_zip` should package whatever `.in`/`.ans` pairs exist on disk under
@@ -212,6 +218,7 @@ class Problem:
     def add_hidden_test(self, test_or_fn, name='', subproblems=None): ...
     def create_all_tests(self, n_jobs: int | None = None,
                          shard: tuple[int, int] | None = None): ...  # None => cpu_count; 1 => serial
+    def clean_test_data(self): ...  # remove data/sample, data/secret, and problem zips
     def create_zip(self, name_prefix='draft_'): ...  # packages from disk
     def upload(self): ...
     def link_to_contest(self): ...
@@ -226,6 +233,8 @@ Changes vs today:
   factory/lambda (generated test); the warning is clarified, not removed.
   `hidden_test_generator` stays as syntactic sugar.
 - `create_all_tests` gains `n_jobs` and `shard`.
+- `clean_test_data` removes generated data and problem zips; call it once before
+  launching sharded workers.
 - `create_zip` packages from disk.
 - `Problem._cur_file`, `print_test`, and the deprecated `Problem.run_cli` are
   removed.
@@ -264,7 +273,7 @@ Changes vs today:
 - Document instance-vs-factory in README/AGENTS. Lambdas work in-process; prefer
   top-level functions for future sharded input generation.
 
-**Step B3 — shard + per-test seeding.**
+**DONE: Step B3 — shard + per-test seeding.**
 - Add `seed` to `Problem`, derive per-test seeds, seed before Phase 1.
 - Add `shard=(i, n)` to `create_all_tests` (strided filter).
 - Document the `if __name__ == '__main__'` re-exec pattern for users.
@@ -278,7 +287,6 @@ Changes vs today:
 - De-globalize `judge_api.USER`/`CONTEST_ID` and `runner.CC`/`_ALL_EXECUTABLES`.
 - De-duplicate the rank→color map (`problem.py:52`, `contest.py:24`).
 - `ruff` target-version → `py311`; scope the `F401` ignore to `__init__.py`.
-- Refresh or delete `examples/add/main.py`; update README pointer.
 
 ### Track A — parallelism (after B, small)
 
@@ -290,7 +298,11 @@ Changes vs today:
 - Swap the executor to `ProcessPoolExecutor` (spawn-safe) since the job payload
   `(infile, ansfile, run_cmd)` is picklable and the worker function is importable.
 
+## DOCS
+- Rewrite AGENTS.md. Lots of stuff should go as docs.
+
 ## Testing
+- Refresh or delete `examples/add/main.py`; update README pointer.
 - Test on judge platform with new library. Rejudge submissions.
 - Try implementing a problem.
 
