@@ -23,13 +23,15 @@ Bump version number in `__init__.py` and run `flit publish` or another build too
 Problem / Test Generation / Test Verification:
 - [ ] Remove problem dir thingy, just cd
 - [ ] Support test case from file
-- [x] Rethink API (Subproblem should be Problem and Problem should be MultipartProblem)
-- I thought about it, it's a bad idea
 
 Other stuff:
-- [ ] Upload problem to testing contest
-- [ ] Create contest
-- [ ] Create contest.zip
+- [X] Upload problem to testing contest
+- [X] Create contest
+- [X] Create contest.zip
+- [ ] Tests
+- [ ] Docs
+- [ ] Remove legacy
+- [ ] Default validation (trailing white space / empty lines... etc)
 
 ## Similar tools
 https://github.com/RagnarGrootKoerkamp/BAPCtools

@@ -9,6 +9,7 @@ import zipfile
 from .judge_api import add_problem_metadata_to_contest, get_problem, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
 import argparse
 from .legacy import *
+from .runner import Runner
 import traceback
 import subprocess
 
@@ -19,25 +20,27 @@ class TestFileBase(ABC):
     # TODO: consider storing filename in this class
 
     subproblems: Collection[str]
+    problem: 'Problem | None'
 
     def __init__(self) -> None:
         # The list of subproblems this test should belong to
         self.subproblems = []
+        # Set by Problem during test generation
+        self.problem = None
 
     @abstractmethod
-    def write_test_in(self):
-        """Write the input file of this test using print_test"""
+    def write_test_in(self) -> str:
+        """Return the input file text for this test."""
         pass
 
-    @abstractmethod
-    def write_test_out(self, infile: str):
-        """Write the solution file, with input already written in infile"""
-        pass
+    def write_test_out(self, infile: str) -> str:
+        """Return the answer file text. Default: run the problem's solution on infile."""
+        assert self.problem is not None, "Test must be registered with a Problem"
+        return self.problem.run_solution(infile)
 
     @abstractmethod
-    def validate_test_in(self, infile: str):
-        """Validate the current test in, written in infile"""
-        # assert False, "Must validate test"
+    def validate_test_in(self, infile: str) -> None:
+        """Validate the current test in, written in infile."""
         pass
 
 # A test consist of either a single case or multiple test cases
@@ -65,11 +68,12 @@ class Problem:
 
     _cli_func: Callable|None = None
 
-    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = []):
+    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = [], solution: Runner | None = None):
         self.problem_name = problem_name
         self.test_sets = test_sets
         self.problem_dir = problem_dir
         self.custom_checker = None
+        self.solution = solution
 
         # order of the problem in the contest. Used for label. Otherwise, label is problem_name
         self.label_prefix: int|str = -1
@@ -85,11 +89,9 @@ class Problem:
         for subproblem in test_sets:
             self.test_paths[subproblem.name] = []
 
-        # the current file that we will write to with print_test
-        self._cur_file = None
         self._sample_path = os.path.join('data', 'sample')
         self._secret_path = os.path.join('data', 'secret')
-        self._all_test_generators = []
+        self._all_tests: list[tuple[TestFileBase | Callable[[], TestFileBase], str, list[str]]] = []
 
 
     def init_problem(self):
@@ -106,15 +108,11 @@ class Problem:
     def add_test_set(self, problem_name: str, rank: int, time_limit = 1, mem_limit: int = _DEFAULT_MEMLIMIT):
         self.test_sets.append(Subproblem(problem_name, rank, time_limit, mem_limit))
 
-    def print_test(
-            self,
-            *values: object,
-            sep: str | None = " ",
-            end: str | None = "\n",
-            ):
-        """Print data to the test file. Arguments are the same as print."""
-        assert self._cur_file != None, "This function should be called in one of the test_write_* function"
-        print(*values, sep=sep, end=end, file=self._cur_file)
+    def run_solution(self, infile: str) -> str:
+        """Run the reference solution on infile and return its stdout."""
+        # TODO: confirm newline behavior on the judge platform (solution output trailing newline).
+        assert self.solution is not None, "No solution configured for this problem"
+        return self.solution.exec_file(infile)
 
     def _add_test(self,
                   test_file_or_fn: TestFileBase|Callable[[], TestFileBase],
@@ -124,32 +122,7 @@ class Problem:
         if subproblems is None:
             subproblems = [s.name for s in self.test_sets]
         file_path = os.path.join(file_dir, file_prefix + '_' + subproblems[0])
-        def test_generator():
-            if callable(test_file_or_fn):
-                test = test_file_or_fn()
-            else:
-                test = test_file_or_fn
-            test.subproblems = subproblems
-            with open(file_path + '.in', 'w', encoding='utf-8', newline='\n') as in_file:
-                self._cur_file = in_file
-                print(f"Writing infile {file_path+'.in'}")
-                test.write_test_in()
-            self._cur_file = None
-
-            # try:
-            test.validate_test_in(file_path + '.in')
-            # except (AssertionError, subprocess.CalledProcessError):
-            #     print(f"!!--------------------------------------------")
-            #     print(f"Validation failed on testcase {file_name}")
-            #     print(traceback.format_exc())
-            #     # pass
-            with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:
-                self._cur_file = out_file
-                print(f"Writing ans (out) file {file_path+'.ans'}")
-                test.write_test_out(file_path + '.in')
-            self._cur_file = None
-
-        self._all_test_generators.append(test_generator)
+        self._all_tests.append((test_file_or_fn, file_path, subproblems))
         for subproblem in subproblems:
             self.test_paths[subproblem].append(file_path)
 
@@ -189,8 +162,9 @@ class Problem:
         self._test_validator = validator
         return validator
 
-    def create_all_tests(self):
+    def create_all_tests(self, n_jobs: int | None = None):
         """Delete existing tests and regenerate them based on all the tests and generators added."""
+        # TODO(n_jobs): parallelize Phase 3 (solution runs) across n_jobs workers.
         os.chdir(self.problem_dir)
 
         try:
@@ -205,8 +179,32 @@ class Problem:
         if self.pre_fn is not None:
             print('\nRunning pre generation tasks...')
             self.pre_fn()
-        for fn in self._all_test_generators:
-            fn()
+
+        # Materialize test instances (factories must run after pre_fn/seed).
+        tests = []
+        for test_or_fn, file_path, subproblems in self._all_tests:
+            test = test_or_fn() if callable(test_or_fn) else test_or_fn
+            test.subproblems = subproblems
+            test.problem = self
+            tests.append((test, file_path))
+
+        # Phase 1: generate inputs.
+        for test, file_path in tests:
+            print(f"Writing infile {file_path + '.in'}")
+            with open(file_path + '.in', 'w', encoding='utf-8', newline='\n') as in_file:
+                in_file.write(test.write_test_in())
+
+        # Phase 2: validate inputs.
+        for test, file_path in tests:
+            test.validate_test_in(file_path + '.in')
+
+        # Phase 3: generate answers (run solution).
+        if self.solution is not None:
+            self.solution.compile()
+        for test, file_path in tests:
+            print(f"Writing ans (out) file {file_path + '.ans'}")
+            with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:
+                out_file.write(test.write_test_out(file_path + '.in'))
 
     def create_zip(self, name_prefix='draft_'):
         """

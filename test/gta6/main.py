@@ -16,13 +16,6 @@ from calico_lib.multicase import TestCaseBase
 
 problem_dir = os.path.dirname(__file__)
 
-p = Problem(
-        'gta6',
-        problem_dir, # problem is in the same directory as the python source file
-        test_sets=[
-            Subproblem('main', rank=1),
-        ])
-
 class TestCase(NamedTuple):
     E: str
     D: int
@@ -36,6 +29,14 @@ solution2 = cpp_runner(
 validator1 = py_runner(path.join(problem_dir, 'scripts/validator_main.py'))
 validator2 = py_runner(path.join(problem_dir, 'scripts/validator.py'))
 
+p = Problem(
+        'gta6',
+        problem_dir, # problem is in the same directory as the python source file
+        test_sets=[
+            Subproblem('main', rank=1),
+        ],
+        solution=solution)
+
 @p.pre_gen_fn
 def pre_gen():
     random.seed('6')
@@ -45,16 +46,15 @@ class TestFile(TestFileBase):
         self.cases = list(cases)
         super().__init__()
 
-    # @override
-    def write_test_in(self):
-        """Write the input file of this test case using print_test"""
-        p.print_test(len(self.cases))
+    def write_test_in(self) -> str:
+        """Return the input text for this test file."""
+        lines = [str(len(self.cases))]
         for case in self.cases:
-            p.print_test(case.E)
-            p.print_test("{:04d}".format(case.Y), "{:02d}".format(case.M), "{:02d}".format(case.D))
+            lines.append(case.E)
+            lines.append("{:04d} {:02d} {:02d}".format(case.Y, case.M, case.D))
+        return "\n".join(lines) + "\n"
 
-    # @override
-    def validate_test_in(self, infile: str):
+    def validate_test_in(self, infile: str) -> None:
         """Verify the test using an external validator."""
         #if 'main' in self.subproblems:
         #    validator1.exec_file(infile)
@@ -63,11 +63,6 @@ class TestFile(TestFileBase):
             assert c.D >= 1 and c.D <= 31
             assert c.M >= 1 and c.M <= 12
             assert c.Y >= 0 and c.Y <= 2200
-
-
-    # @override
-    def write_test_out(self, infile: str):
-        p.print_test(solution.exec_file(infile))
 
 # adds to all subproblems by default
 p.add_sample_test(TestFile([

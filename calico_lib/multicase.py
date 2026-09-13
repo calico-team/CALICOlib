@@ -8,8 +8,8 @@ class TestCaseBase(ABC):
         pass
 
     @abstractmethod
-    def write_test_in(self):
-        """Write the input file of this test case using print_test"""
+    def write_test_in(self) -> str:
+        """Return the input text for this test case."""
         pass
 
     @abstractmethod
@@ -17,8 +17,6 @@ class TestCaseBase(ABC):
         pass
 
 class MulticaseTestFile(TestFileBase):
-    problem = None
-
     def __init__(self, cases: Iterable[TestCaseBase]|None = None) -> None:
         if cases is None:
             self.cases: list[TestCaseBase] = []
@@ -26,17 +24,12 @@ class MulticaseTestFile(TestFileBase):
             self.cases = list(cases)
         super().__init__()
 
-    # @override
-    # def get_subproblems(self) -> list[str]:
-    #     return ['bonus']
-
-    # @override
-    def write_test_in(self):
-        assert self.problem != None, "Must set problem for multicase test file"
-        self.problem.print_test(len(self.cases))
+    def write_test_in(self) -> str:
+        # TODO: settle the multicase return-string contract and verify_case naming.
+        lines = [str(len(self.cases))]
         for case in self.cases:
-            case.write_test_in()
-        return super().write_test_in()
+            lines.append(case.write_test_in())
+        return "\n".join(lines) + "\n"
 
 #
 # class TestFileFromFile(TestFileBase):
