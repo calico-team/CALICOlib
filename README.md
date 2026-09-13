@@ -4,13 +4,20 @@ CALICOlib is a framework to help facilitate problem creation on DOMjudge. Curren
 ## Installing
 ```
 python -m pip install calico_lib
+# or use uv
+uv pip install calico_lib
 ```
 Alternatively, install the development version using flit.
 ```
 brew install flit # or another package manager like pip or pipx
 git clone https://github.com/calico-team/CALICOlib.git
 cd CALICOlib
+
 PIP_BREAK_SYSTEM_PACKAGES=1 flit install --symlink
+# or use uv
+uv pip install -e .
+# to install to another project's venv
+uv pip install -e . --python /path/to/other-project/.venv
 ```
 
 ## Quick Start
@@ -20,11 +27,7 @@ See examples/add. Also see https://github.com/calico-team/CALICOlib/blob/main/ex
 Bump version number in `__init__.py` and run `flit publish` or another build tool. See [documentation for flit](https://flit.pypa.io/en/stable/).
 
 ## Roadmap
-Problem / Test Generation / Test Verification:
-- [ ] Remove problem dir thingy, just cd
 - [ ] Support test case from file
-
-Other stuff:
 - [X] Upload problem to testing contest
 - [X] Create contest
 - [X] Create contest.zip
@@ -32,6 +35,7 @@ Other stuff:
 - [ ] Docs
 - [ ] Remove legacy
 - [ ] Default validation (trailing white space / empty lines... etc)
+- [ ] Backward compatible
 
 ## Similar tools
 https://github.com/RagnarGrootKoerkamp/BAPCtools

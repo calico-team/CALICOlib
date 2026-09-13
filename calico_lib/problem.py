@@ -138,8 +138,14 @@ class Problem:
         self.sample_count += 1
 
     def add_hidden_test(self, test_or_fn: TestFileBase|Callable[[], TestFileBase], name: str='', subproblems: list[str]|None = None):
+        # TODO: move this instance-vs-factory guidance into the example once it is rewritten.
         if isinstance(test_or_fn, TestFileBase):
-            print(f'[Warning]: {self.problem_name} hidden test added in place...')
+            print(
+                f'[Warning] add_hidden_test got a TestFile instance for "{self.problem_name}". '
+                'Instances are built eagerly, before pre_gen_fn seeds random, so they are '
+                'fine for hard-coded tests but not for generated ones. Pass a factory/lambda '
+                'for generated tests.'
+            )
         if name != '': name = '_' + name
         self._add_test(test_or_fn, self._secret_path, f'{self.hidden_count:02d}{name}', subproblems)
         self.hidden_count += 1
