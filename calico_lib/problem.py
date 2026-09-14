@@ -10,7 +10,6 @@ import zipfile
 
 from .judge_api import add_problem_metadata_to_contest, get_problem, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
 import argparse
-from .legacy import *
 from .runner import Runner
 import traceback
 import subprocess
@@ -60,6 +59,7 @@ RANK_COLOR_MAP = {
         3: '#995d59',
         4: '#000000',
         }
+
 
 class Subproblem(NamedTuple):
     name: str
@@ -275,6 +275,30 @@ class Problem:
             with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:
                 out_file.write(test.write_test_out(file_path + '.in'))
 
+    def _zip_file_path(self, problem_name: str, test_set_name: str) -> str:
+        """Return the absolute zip path for a problem test set."""
+        return os.path.join(self.problem_dir, f'{problem_name}_{test_set_name}.zip')
+
+    def _zip_submissions(self, zip_file: zipfile.ZipFile) -> None:
+        """Add every file under ``submissions/`` to ``zip_file``."""
+        submissions_dir = os.path.join(self.problem_dir, 'submissions')
+        for root, _, files in os.walk(submissions_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, self.problem_dir)
+                zip_file.write(file_path, arcname)
+
+    def _write_metadata(self, zip_file: zipfile.ZipFile,
+                        final_name: str, test_set: Subproblem) -> None:
+        """Write the DOMjudge metadata file for a test set into ``zip_file``."""
+        lines = [
+            f'name={final_name}_{test_set.name}',
+            f'timelimit={test_set.time_limit}',
+        ]
+        if self.custom_checker is not None:
+            lines.append(f"special_compare='{self.custom_checker}'")
+        zip_file.writestr('domjudge-problem.ini', '\n'.join(lines) + '\n')
+
     def create_zip(self, name_prefix='draft_'):
         """
         Create a zip for each test set. Each test set consists of data, submissions,
@@ -283,23 +307,15 @@ class Problem:
         final_name = name_prefix + self.problem_name
 
         for test_set in self.test_sets:
-            file_path = os.path.join(
-                self.problem_dir, get_zip_file_path(final_name, test_set.name))
+            file_path = self._zip_file_path(final_name, test_set.name)
             print(f'Creating zip for test set "{test_set.name}" at "{file_path}...')
             with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 for file in self.test_paths[test_set.name]:
                     zip_file.write(file + '.in', os.path.relpath(file + '.in', self.problem_dir))
                     zip_file.write(file + '.ans', os.path.relpath(file + '.ans', self.problem_dir))
 
-                zip_path(zip_file,
-                         os.path.join(self.problem_dir, 'submissions'),
-                         test_set.name,
-                         lambda _, _2: True)
-                zip_metadata(zip_file,
-                             final_name,
-                             test_set.name,
-                             test_set.time_limit,
-                             self.custom_checker)
+                self._zip_submissions(zip_file)
+                self._write_metadata(zip_file, final_name, test_set)
 
             print(f'Done creating zip for test set "{test_set.name}"!')
 
@@ -336,8 +352,7 @@ class Problem:
                     if i > 0:
                         label = label + f'b{i}'
                 add_problem_metadata_to_contest(pid, label, test_set.color())
-            zip_file_path = os.path.join(
-                self.problem_dir, get_zip_file_path(self.problem_name, test_set.name))
+            zip_file_path = self._zip_file_path(self.problem_name, test_set.name)
             pid = upload_problem_zip(zip_file_path, pid)
             i = i + 1
 

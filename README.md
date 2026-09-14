@@ -33,7 +33,7 @@ Bump version number in `__init__.py` and run `flit publish` or another build too
 - [X] Create contest.zip
 - [ ] Tests
 - [ ] Docs
-- [ ] Remove legacy
+- [X] Remove legacy
 - [ ] Default validation (trailing white space / empty lines... etc)
 - [ ] Backward compatible
 
