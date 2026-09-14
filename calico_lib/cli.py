@@ -10,6 +10,12 @@ import argparse
 
 
 def run_cli(obj: Contest|Problem):
+    """Run the interactive CLI for a ``Problem`` or ``Contest``.
+
+    Config paths are relative to the parent directory: a ``Problem`` loads
+    ``../secrets.toml`` and ``../config.toml``, while a ``Contest`` loads
+    ``secrets.toml`` in the current directory.
+    """
     desc = 'CLI interface for various actions for this problem. '\
             'By default, generates and verifies test cases.' \
             'Specify contest ID and password specified in ../config.toml, and password in ../secrets.toml, ' \

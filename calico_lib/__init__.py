@@ -2,6 +2,7 @@
 
 __version__ = "0.1.22"
 
+# Re-export the public API. These imports are intentionally unused here.
 from .problem import Problem, TestFileBase, Subproblem
 from .contest import Contest
 from .runner import *

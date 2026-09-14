@@ -42,7 +42,11 @@ class TestFileBase(ABC):
 
     @abstractmethod
     def validate_test_in(self, infile: str) -> None:
-        """Validate the current test in, written in infile."""
+        """Validate the generated input, written at ``infile``.
+
+        This always runs during Phase 2 of ``create_all_tests`` and cannot be
+        skipped; if validation is expensive, comment out the body instead.
+        """
         pass
 
 # A test consist of either a single case or multiple test cases
@@ -73,6 +77,13 @@ class Problem:
     _cli_func: Callable|None = None
 
     def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = [], solution: Runner | None = None, seed: str | None = None):
+        """Create a problem rooted at ``problem_dir``.
+
+        ``problem_dir`` is stored as an absolute path and all generated and
+        packaged paths are resolved against it; the library never calls
+        ``os.chdir``. ``seed`` (default ``problem_name``) drives per-test
+        seeding in ``create_all_tests``.
+        """
         self.problem_name = problem_name
         self.test_sets = test_sets
         self.problem_dir = os.path.abspath(problem_dir)
@@ -120,7 +131,11 @@ class Problem:
         return self.solution.exec_file(infile)
 
     def _test_seed(self, index: int, file_path: str) -> int:
-        """Return a stable per-test integer seed, derived from the problem seed."""
+        """Return a stable per-test integer seed derived from the problem seed.
+
+        This seeds only the global ``random`` module; fresh ``random.Random()``
+        instances and ``numpy.random`` are not affected.
+        """
         key = f"{self.seed}:{index}:{os.path.basename(file_path)}".encode()
         return int.from_bytes(hashlib.sha256(key).digest()[:8], 'big')
 
@@ -148,7 +163,15 @@ class Problem:
         self.sample_count += 1
 
     def add_hidden_test(self, test_or_fn: TestFileBase|Callable[[], TestFileBase], name: str='', subproblems: list[str]|None = None):
-        # TODO: move this instance-vs-factory guidance into the example once it is rewritten.
+        """Register a hidden (secret) test.
+
+        ``test_or_fn`` may be a ``TestFileBase`` instance (hard-coded test) or a
+        zero-arg callable returning one (generated test). Prefer a callable for
+        generated tests: an instance is built eagerly, before ``pre_gen_fn``
+        runs and before ``random`` is seeded, so its content is frozen too early.
+        """
+
+        # TODO: mention docs above in example
         if isinstance(test_or_fn, TestFileBase):
             print(
                 f'[Warning] add_hidden_test got a TestFile instance for "{self.problem_name}". '
@@ -201,9 +224,14 @@ class Problem:
         """Delete existing tests and regenerate them from all added tests.
 
         Runs three phases per test: generate the input, validate it, then
-        generate the answer. ``shard=(i, n)`` limits generation to tests whose
-        index ``% n == i``; in that case the data/zips are not wiped first (the
-        driver must call ``clean_test_data()`` once before spawning workers).
+        generate the answer. ``random`` is seeded per test from ``_test_seed``
+        before Phase 1, so each test is independent of its siblings and of
+        ordering.
+
+        ``shard=(i, n)`` limits generation to tests whose index ``% n == i``.
+        Shard workers re-run ``main.py`` with env vars and must keep the usual
+        ``if __name__ == '__main__':`` guard; they skip the data/zips wipe, so
+        the driver must call ``clean_test_data()`` once before spawning them.
         """
         # TODO(n_jobs): parallelize Phase 3 (solution runs) across n_jobs workers.
         if shard is None:
