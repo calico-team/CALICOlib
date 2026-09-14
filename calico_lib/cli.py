@@ -18,7 +18,7 @@ def run_cli(obj: Contest|Problem):
     """
     desc = 'CLI interface for various actions for this problem. '\
             'By default, generates and verifies test cases.' \
-            'Specify contest ID and password specified in ../config.toml, and password in ../secrets.toml, ' \
+            'Specify contest ID in ../config.toml, and password in ../secrets.toml, ' \
             'or use command line arguments, which takes priority.'
     if isinstance(obj, Contest):
         desc = 'CLI interface for various actions for this contest. '\
@@ -59,9 +59,6 @@ def run_cli(obj: Contest|Problem):
         load_configs('../config.toml')
 
     args = parser.parse_args()
-    # if isinstance(obj, Contest) and len(sys.argv) == 1:
-    #     parser.print_help()
-    #     return
 
     if isinstance(obj, Contest) and args.create:
         obj.create_contest()

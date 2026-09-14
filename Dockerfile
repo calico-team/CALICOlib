@@ -13,7 +13,7 @@ ENV FLIT_ROOT_INSTALL=1
 # Install any necessary Python dependencies
 RUN flit install --symlink
 
-WORKDIR /workspace/test
+WORKDIR /workspace/tests
 
 # Define the command to run your application
 CMD ["python", "gta6/main.py"]

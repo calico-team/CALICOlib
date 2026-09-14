@@ -14,9 +14,6 @@ from .runner import Runner
 import traceback
 import subprocess
 
-# TODO:
-# screw problem dir, just have user cd into dir
-
 class TestFileBase(ABC):
     # TODO: consider storing filename in this class
 
