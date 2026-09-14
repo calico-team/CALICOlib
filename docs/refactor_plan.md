@@ -12,8 +12,8 @@ A clean, deterministic, portable 1.0 API with:
   solutions), managed by the library;
 - a supported, low-friction path for users who want to parallelize input
   generation themselves (sharding);
-- packaging that works from files on disk, so externally-generated tests are
-  first-class rather than an escape hatch.
+- packaging driven by the in-memory test registry, with `add_raw_test` as the
+  explicit escape hatch for externally-generated tests.
 
 ## Decisions
 
@@ -32,8 +32,9 @@ A clean, deterministic, portable 1.0 API with:
    orchestrate user code across processes. It exposes deterministic, pure,
    shardable generation; the user owns the orchestration (fork, re-exec, queue,
    whatever).
-7. **Disk-based packaging.** `create_zip` packages files on disk, not just the
-   in-memory registry.
+7. **In-memory packaging.** `create_zip` packages from the in-memory
+   `test_paths` registry. Externally-generated tests are registered via
+   `add_raw_test`, not discovered by scanning the data directories.
 8. **Library-owned seeding.** `Problem` takes an optional `seed`; the library
    seeds deterministically before each test. If omitted, a default derived from
    `problem_name` is used, so tests are reproducible without user action.
@@ -172,17 +173,17 @@ exposes `Problem.clean_test_data()` for this: it removes `data/sample`,
 `data/secret`, and any `*.zip` in the problem dir whose name ends with
 `_<test_set_name>`. A driver calls it once, then launches the workers.
 
-## Disk-based packaging
+## Packaging: in-memory registry (no disk scan)
 
-`create_zip` should package whatever `.in`/`.ans` pairs exist on disk under
-`data/sample/` and `data/secret/`, rather than relying solely on the in-memory
-`test_paths` registry. This makes externally-generated tests (including sharded
-output) first-class.
+`create_zip` packages from the in-memory `test_paths` registry, not by scanning
+`data/sample/` and `data/secret/`. `_add_test` appends each test's stem to every
+subproblem it belongs to, so multi-subproblem membership is preserved exactly
+(a `main` test also shipped in the `bonus` zip, e.g. `test/laser`). A
+filename-derived subproblem mapping cannot express that, so no disk scan is
+used.
 
-Subproblem mapping: the trailing filename segment before the extension is the
-subproblem (`00_pure_random_main.in` -> `main`), matching the current naming
-convention. This constrains subproblem names to not contain `_` (already
-implicit in the current code). Flagged as an open question.
+Externally-generated tests stay an escape hatch: the user calls `add_raw_test`
+once per test to register its stem in the relevant subproblems.
 
 ## Target API
 
@@ -219,7 +220,7 @@ class Problem:
     def create_all_tests(self, n_jobs: int | None = None,
                          shard: tuple[int, int] | None = None): ...  # None => cpu_count; 1 => serial
     def clean_test_data(self): ...  # remove data/sample, data/secret, and problem zips
-    def create_zip(self, name_prefix='draft_'): ...  # packages from disk
+    def create_zip(self, name_prefix='draft_'): ...  # packages from test_paths
     def upload(self): ...
     def link_to_contest(self): ...
 ```
@@ -235,7 +236,7 @@ Changes vs today:
 - `create_all_tests` gains `n_jobs` and `shard`.
 - `clean_test_data` removes generated data and problem zips; call it once before
   launching sharded workers.
-- `create_zip` packages from disk.
+- `create_zip` packages from the in-memory `test_paths` registry.
 - `Problem._cur_file`, `print_test`, and the deprecated `Problem.run_cli` are
   removed.
 
@@ -248,7 +249,8 @@ Changes vs today:
 3. **Jobs as data** (`path`, `run_cmd`), never closures over user objects.
 4. **Shard + per-test seeding** — first-class, so input-gen parallelism is a
    user choice, not a library rewrite later.
-5. **Disk-based `create_zip`** — generation and packaging are decoupled.
+5. **Absolute, `problem_dir`-based paths** — no `os.chdir`, so the process
+   working directory never affects generation or packaging.
 
 ## Implementation phases
 
@@ -278,14 +280,15 @@ Changes vs today:
 - Add `shard=(i, n)` to `create_all_tests` (strided filter).
 - Document the `if __name__ == '__main__'` re-exec pattern for users.
 
-**Step B4 — disk-based packaging + cleanup.**
-- `create_zip` discovers `.in`/`.ans` from `data/sample` and `data/secret`.
+**Step B4 — cleanup.**
+- ~~Disk-based `create_zip`~~ dropped: keep the in-memory `test_paths` registry;
+  `add_raw_test` remains the escape hatch for externally-generated tests.
 - Remove `os.chdir` from `create_all_tests` / `create_zip` / `cli.run_cli`; use
-  `problem_dir`-based absolute paths.
+  `problem_dir`-based absolute paths. (DONE)
 - `zip_metadata`: write content in-memory via `zip_file.writestr` (no temp file
-  in `calico_lib/`).
+  in `calico_lib/`). (DONE)
 - De-globalize `judge_api.USER`/`CONTEST_ID` and `runner.CC`/`_ALL_EXECUTABLES`.
-- De-duplicate the rank→color map (`problem.py:52`, `contest.py:24`).
+- De-duplicate the rank→color map (`problem.py:52`, `contest.py:24`). (DONE)
 - `ruff` target-version → `py311`; scope the `F401` ignore to `__init__.py`.
 
 ### Track A — parallelism (after B, small)
@@ -318,8 +321,9 @@ Changes vs today:
   concrete no-op default (see suggestion #6) or a `validate=False` param.
 - Per-test seeding mechanism: global-`random`-only vs. explicit `seed` arg to
   the factory (or both).
-- Disk-based packaging subproblem parsing: trailing `_segment` convention, and
-  whether subproblem names may contain `_`.
+- `add_raw_test` (externally-generated tests): currently in-memory only; decide
+  whether it needs a disk-persisted manifest if packaging must run in a separate
+  process from generation. Deferred (edge case, no example in repo).
 
 ## What we lose at Python 3.11 (vs 3.12)
 

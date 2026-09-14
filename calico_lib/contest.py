@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Literal
 
 from .judge_api import create_contest, set_contest_id
-from .problem import Problem
+from .problem import Problem, RANK_COLOR_MAP
 from calico_lib import judge_api
 
 @dataclass
@@ -22,11 +22,5 @@ class Contest():
         print('=======================')
 
 def link_external_problem(cid, pid, label, rank):
-    rank_color_map = {
-            1: '#e9e4d7',
-            2: '#ff7e34',
-            3: '#995d59',
-            4: '#000000',
-            }
     set_contest_id(cid)
-    judge_api.link_problem_to_contest(pid, label, rank_color_map[rank])
+    judge_api.link_problem_to_contest(pid, label, RANK_COLOR_MAP[rank])

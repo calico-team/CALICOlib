@@ -49,19 +49,21 @@ class TestFileBase(ABC):
 
 _DEFAULT_MEMLIMIT = 256_000_000
 
+# DOMjudge problem color per subproblem rank (1..4).
+RANK_COLOR_MAP = {
+        1: '#e9e4d7',
+        2: '#ff7e34',
+        3: '#995d59',
+        4: '#000000',
+        }
+
 class Subproblem(NamedTuple):
     name: str
     rank: int
     time_limit: int = 1
     mem_limit: int = _DEFAULT_MEMLIMIT
     def color(self):
-        rank_color_map = {
-                1: '#e9e4d7',
-                2: '#ff7e34',
-                3: '#995d59',
-                4: '#000000',
-                }
-        return rank_color_map[self.rank]
+        return RANK_COLOR_MAP[self.rank]
 
 class Problem:
     test_sets: list[Subproblem]
@@ -92,8 +94,8 @@ class Problem:
         for subproblem in test_sets:
             self.test_paths[subproblem.name] = []
 
-        self._sample_path = os.path.join('data', 'sample')
-        self._secret_path = os.path.join('data', 'secret')
+        self._sample_path = os.path.join(self.problem_dir, 'data', 'sample')
+        self._secret_path = os.path.join(self.problem_dir, 'data', 'secret')
         self._all_tests: list[tuple[TestFileBase | Callable[[], TestFileBase], str, list[str]]] = []
 
 
@@ -186,7 +188,7 @@ class Problem:
         shards don't clobber each other.
         """
         for path in (self._sample_path, self._secret_path):
-            shutil.rmtree(os.path.join(self.problem_dir, path), ignore_errors=True)
+            shutil.rmtree(path, ignore_errors=True)
 
         for name in os.listdir(self.problem_dir):
             if not name.endswith('.zip'):
@@ -204,8 +206,6 @@ class Problem:
         driver must call ``clean_test_data()`` once before spawning workers).
         """
         # TODO(n_jobs): parallelize Phase 3 (solution runs) across n_jobs workers.
-        os.chdir(self.problem_dir)
-
         if shard is None:
             self.clean_test_data()
         os.makedirs(self._sample_path, exist_ok=True)
@@ -252,20 +252,21 @@ class Problem:
         Create a zip for each test set. Each test set consists of data, submissions,
         and the DOMjudge metadata file.
         """
-        os.chdir(self.problem_dir)
-
         final_name = name_prefix + self.problem_name
 
         for test_set in self.test_sets:
-            file_path = get_zip_file_path(final_name, test_set.name)
-            file_path = os.path.join(self.problem_dir, file_path)
+            file_path = os.path.join(
+                self.problem_dir, get_zip_file_path(final_name, test_set.name))
             print(f'Creating zip for test set "{test_set.name}" at "{file_path}...')
             with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 for file in self.test_paths[test_set.name]:
-                    zip_file.write(file+'.in')
-                    zip_file.write(file+'.ans')
+                    zip_file.write(file + '.in', os.path.relpath(file + '.in', self.problem_dir))
+                    zip_file.write(file + '.ans', os.path.relpath(file + '.ans', self.problem_dir))
 
-                zip_path(zip_file, 'submissions', test_set.name, lambda _, _2: True)
+                zip_path(zip_file,
+                         os.path.join(self.problem_dir, 'submissions'),
+                         test_set.name,
+                         lambda _, _2: True)
                 zip_metadata(zip_file,
                              final_name,
                              test_set.name,
@@ -307,7 +308,9 @@ class Problem:
                     if i > 0:
                         label = label + f'b{i}'
                 add_problem_metadata_to_contest(pid, label, test_set.color())
-            pid = upload_problem_zip(get_zip_file_path(self.problem_name, test_set.name), pid)
+            zip_file_path = os.path.join(
+                self.problem_dir, get_zip_file_path(self.problem_name, test_set.name))
+            pid = upload_problem_zip(zip_file_path, pid)
             i = i + 1
 
     def link_to_contest(self):

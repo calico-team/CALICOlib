@@ -93,7 +93,6 @@ def run_cli(obj: Contest|Problem):
 
     for target_problem in target_problems:
         print(f'======\n---> Operating on {target_problem.problem_name}\n======')
-        os.chdir(target_problem.problem_dir)
         target_problem.init_problem()
 
         if args.final:
@@ -114,16 +113,20 @@ def run_cli(obj: Contest|Problem):
 
         def ignore(path, names):
             # print(path, names)
+            rel = os.path.relpath(path, target_problem.problem_dir)
             inc = ['./data/sample', './templates']
-            if path == '.':
+            if rel == '.':
                 return [name for name in names if name not in ['data', 'templates']]
-            if path == './data':
+            if rel == './data':
                 return [name for name in names if name not in ['sample']]
-            if path in inc:
+            if rel in inc:
                 return []
             return names
         if isinstance(obj, Contest) and args.contest_zip:
-            shutil.copytree('.', f'../{zip_dir_name}/{target_problem.problem_name}', ignore=ignore)
+            shutil.copytree(
+                target_problem.problem_dir,
+                os.path.join(target_problem.problem_dir, '..', zip_dir_name, target_problem.problem_name),
+                ignore=ignore)
 
         if args.upload:
             print('=== Uploading Problem Zip ===')
