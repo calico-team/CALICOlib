@@ -17,8 +17,8 @@ A clean, deterministic, portable 1.0 API with:
 
 ## Decisions
 
-1. **Python floor: 3.11** (matches Dockerfile, gives `tomllib`). No 3.12-only
-   features; drop `typing.override` usages.
+1. **Python floor: 3.12** (matches Dockerfile, gives `tomllib` and
+   `typing.override`).
 2. **Return-string contract.** `write_test_in` / `write_test_out` return the
    full text as `str`. `print_test` and `Problem._cur_file` are removed.
 3. **Keep public names** `Problem`, `Subproblem`, `TestFileBase`. Naming was
@@ -280,16 +280,14 @@ Changes vs today:
 - Add `shard=(i, n)` to `create_all_tests` (strided filter).
 - Document the `if __name__ == '__main__'` re-exec pattern for users.
 
-**Step B4 — cleanup.**
+**DONE: Step B4 — cleanup.**
 - ~~Disk-based `create_zip`~~ dropped: keep the in-memory `test_paths` registry;
   `add_raw_test` remains the escape hatch for externally-generated tests.
 - Remove `os.chdir` from `create_all_tests` / `create_zip` / `cli.run_cli`; use
-  `problem_dir`-based absolute paths. (DONE)
+  `problem_dir`-based absolute paths.
 - `zip_metadata`: write content in-memory via `zip_file.writestr` (no temp file
-  in `calico_lib/`). (DONE)
-- De-globalize `judge_api.USER`/`CONTEST_ID` and `runner.CC`/`_ALL_EXECUTABLES`.
-- De-duplicate the rank→color map (`problem.py:52`, `contest.py:24`). (DONE)
-- `ruff` target-version → `py311`; scope the `F401` ignore to `__init__.py`.
+  in `calico_lib/`).
+- De-duplicate the rank→color map (`problem.py:52`, `contest.py:24`).
 
 ### Track A — parallelism (after B, small)
 
@@ -301,8 +299,15 @@ Changes vs today:
 - Swap the executor to `ProcessPoolExecutor` (spawn-safe) since the job payload
   `(infile, ansfile, run_cmd)` is picklable and the worker function is importable.
 
+### Other cleanup
+
+- De-globalize `judge_api.USER`/`CONTEST_ID` and `runner.CC`/`_ALL_EXECUTABLES`.
+- `ruff` target-version → `py312`; scope the `F401` ignore to `__init__.py`.
+
 ## DOCS
-- Rewrite AGENTS.md. Lots of stuff should go as docs.
+- Rewrite AGENTS.md. Lots of stuff should go as docs. (IN PROGRESS: the
+  non-obvious gotchas and the architecture walkthrough were slimmed; the removed
+  notes now live in docstrings in `problem.py`, `cli.py`, and `__init__.py`.)
 
 ## Testing
 - Refresh or delete `examples/add/main.py`; update README pointer.
@@ -324,11 +329,3 @@ Changes vs today:
 - `add_raw_test` (externally-generated tests): currently in-memory only; decide
   whether it needs a disk-persisted manifest if packaging must run in a separate
   process from generation. Deferred (edge case, no example in repo).
-
-## What we lose at Python 3.11 (vs 3.12)
-
-- `typing.override` — cosmetic; drop the import in stale examples.
-- `PEP 695` `class Foo[T]` syntax.
-- `Path.walk` — use `os.walk`.
-
-None are required by this refactor.

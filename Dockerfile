@@ -1,5 +1,5 @@
-# Use the official Python 3.11 base image
-FROM python:3.11-slim-buster
+# Use the official Python 3.12 base image
+FROM python:3.12-slim
 
 # Set the working directory in the container
 WORKDIR /workspace
