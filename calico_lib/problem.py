@@ -176,7 +176,6 @@ class Problem:
         runs and before ``random`` is seeded, so its content is frozen too early.
         """
 
-        # TODO: mention docs above in example
         if isinstance(test_or_fn, TestFileBase):
             print(
                 f'[Warning] add_hidden_test got a TestFile instance for "{self.problem_name}". '

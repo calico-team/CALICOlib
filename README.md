@@ -39,3 +39,17 @@ Bump version number in `__init__.py` and run `flit publish` or another build too
 
 ## Similar tools
 https://github.com/RagnarGrootKoerkamp/BAPCtools
+
+## Changelog
+
+### 1.0.0-rc1
+
+- `write_test_in` returns a `str` instead of writing via `p.print_test`
+  (removed). Tests become pure functions, which makes generation parallel-safe.
+- `Problem(..., solution=..., seed=...)` declares your reference solution and
+  seed. The library calls `random.seed` before each test, so generation is
+  reproducible without you remembering to seed.
+- Answer generation defaults to running `solution`; you no longer need to
+  override `write_test_out` for the common case.
+- `create_all_tests(n_jobs=...)` (or `-j/--jobs` on the CLI) runs answer
+  generation in parallel across subprocesses.
