@@ -16,6 +16,7 @@ def main():
     for _ in range(T):
         temp = input().split()
         A, B = int(temp[0]), int(temp[1])
+        solve(A, B)
 
 if __name__ == '__main__':
     main()

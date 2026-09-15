@@ -44,7 +44,7 @@ class TestFileBase(ABC):
         This always runs during Phase 2 of ``create_all_tests`` and cannot be
         skipped; if validation is expensive, comment out the body instead.
         """
-        pass
+        assert False, "Must validate test"
 
 # A test consist of either a single case or multiple test cases
 
@@ -270,7 +270,7 @@ class Problem:
             i, n = shard
             jobs = [(index, job) for index, job in jobs if index % n == i]
 
-        tests = []
+        tests: list[tuple[TestFileBase, str]] = []
         for index, (test_or_fn, file_path, subproblems) in jobs:
             random.seed(self._test_seed(index, file_path))
             test = test_or_fn() if callable(test_or_fn) else test_or_fn

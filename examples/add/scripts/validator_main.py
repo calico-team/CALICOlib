@@ -5,7 +5,7 @@ def solve(A: int, B: int) -> int:
     A: a non-negative integer
     B: another non-negative integer
     """
-    assert A <= 99
+    assert A <= 100
     assert B <= 100
     return 0
 
@@ -16,6 +16,7 @@ def main():
     for _ in range(T):
         temp = input().split()
         A, B = int(temp[0]), int(temp[1])
+        solve(A, B)
 
 if __name__ == '__main__':
     main()
