@@ -1,6 +1,6 @@
 """CALICO lib for all your problem writing needs"""
 
-__version__ = "0.1.22"
+__version__ = "0.2.0"
 
 from .cli import run_cli
 from .contest import Contest
