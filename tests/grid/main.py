@@ -9,14 +9,20 @@
 #   main: T <= 10, N = 3, 1 <= val <= 10^9
 #   bonus: T <= 10, N <= 100000, 1 <= val <= 10^9
 
-from typing import override
 from calico_lib import Problem, cpp_runner, py_runner, TestFileBase, Subproblem
 from collections.abc import Iterable
-from typing import NamedTuple
+from typing import NamedTuple, override
 import random
 import os
+from os import path
 
 problem_dir = os.path.dirname(__file__)
+
+solution = cpp_runner(
+        path.join(problem_dir, 'submissions/accepted/sol.cpp'),
+        path.join(problem_dir, 'sol.bin'))
+validator = py_runner(path.join(problem_dir, 'scripts/validator.py'))
+validator_main = py_runner(path.join(problem_dir, 'scripts/validator_main.py'))
 
 p = Problem(
         'grid',
@@ -24,22 +30,19 @@ p = Problem(
         test_sets=[
             Subproblem('main', rank=2),
             Subproblem('bonus', rank=2),
-            ])
+            ],
+        solution=solution,
+        seed='grid_sp26_seed')
 
 p.custom_checker = 'grid_compare'
 
 class TestCase(NamedTuple):
     N: int
-    row: list
-
-sol = cpp_runner('submissions/accepted/sol.cpp', 'sol.bin')
-validator = py_runner('scripts/validator.py')
-validator_main = py_runner('scripts/validator_main.py')
+    row: list[int]
 
 @p.pre_gen_fn
 def pre_gen_fn():
-    random.seed('grid_sp26_seed')
-    sol.compile()
+    solution.compile()
 
 class TestFile(TestFileBase):
     def __init__(self, cases: Iterable[TestCase]) -> None:
@@ -47,21 +50,20 @@ class TestFile(TestFileBase):
         super().__init__()
 
     @override
-    def write_test_in(self):
-        p.print_test(len(self.cases))
+    def write_test_in(self) -> str:
+        """Return the input text for this test file."""
+        lines = [str(len(self.cases))]
         for case in self.cases:
-            p.print_test(case.N)
-            p.print_test(*case.row)
+            lines.append(str(case.N))
+            lines.append(' '.join(map(str, case.row)))
+        return '\n'.join(lines) + '\n'
 
     @override
-    def validate_test_in(self, infile: str):
+    def validate_test_in(self, infile: str) -> None:
+        """Verify the test using an external validator."""
         if 'main' in self.subproblems:
             validator_main.exec_file(infile)
         validator.exec_file(infile)
-
-    @override
-    def write_test_out(self, infile: str):
-        p.print_test(sol.exec_file(infile))
 
 # Main sample test (N = 3 only)
 p.add_sample_test(TestFile([

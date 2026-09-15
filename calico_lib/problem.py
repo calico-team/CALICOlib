@@ -191,6 +191,14 @@ class Problem:
         return generator
 
     def pre_gen_fn(self, fn: Callable[[], None]):
+        """Register a one-time setup callback run before test generation.
+
+        Runs only in the coordinating process (``shard is None`` in
+        ``create_all_tests``); shard workers skip it. Use it for one-time setup
+        such as compiling runners. For reproducible randomness, use the
+        ``Problem`` ``seed`` argument instead of seeding here: the library seeds
+        ``random`` per test before Phase 1.
+        """
         self.pre_fn = fn
         return fn
 
@@ -225,6 +233,12 @@ class Problem:
         before Phase 1, so each test is independent of its siblings and of
         ordering.
 
+        The reference solution is not compiled here; the user compiles their
+        runners themselves (typically in ``pre_gen_fn``), since a problem may
+        need several binaries such as a solution, validator, or generator.
+        ``pre_gen_fn`` runs only when ``shard is None`` (the coordinating
+        process), so shard workers skip one-time setup like compilation.
+
         ``shard=(i, n)`` limits generation to tests whose index ``% n == i``.
         Shard workers re-run ``main.py`` with env vars and must keep the usual
         ``if __name__ == '__main__':`` guard; they skip the data/zips wipe, so
@@ -236,7 +250,7 @@ class Problem:
         os.makedirs(self._sample_path, exist_ok=True)
         os.makedirs(self._secret_path, exist_ok=True)
 
-        if self.pre_fn is not None:
+        if shard is None and self.pre_fn is not None:
             print('\nRunning pre generation tasks...')
             self.pre_fn()
 
@@ -265,8 +279,6 @@ class Problem:
             test.validate_test_in(file_path + '.in')
 
         # Phase 3: generate answers (run solution).
-        if self.solution is not None:
-            self.solution.compile()
         for test, file_path in tests:
             print(f"Writing ans (out) file {file_path + '.ans'}")
             with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:

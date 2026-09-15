@@ -136,9 +136,11 @@ Caveats:
   `random.Random()` instance, `numpy.random`, or `secrets`. Document "use the
   global `random` module for reproducible tests"; an explicit `seed` arg to the
   factory would close the gap but is a larger API change.
-- **`pre_gen_fn` remains** for non-seeding setup (precompute data, read files),
-  but its seeding role is absorbed. With sharding it re-runs in every worker,
-  so it must be deterministic/idempotent.
+- **`pre_gen_fn` remains** for one-time, coordinator-only setup (compiling
+  runners), but its seeding role is absorbed. It runs only when ``shard is
+  None``; shard workers skip it, so it is the place to compile binaries exactly
+  once. Per-worker setup (e.g. precomputing data inside each shard process) has
+  no dedicated hook yet and is an open design gap.
 - **String vs int seed.** `random.seed('6')` and `random.seed(6)` differ, and
   string seeds are not guaranteed stable across Python versions (the string-to-int
   path changed in 3.9). Recommend int seeds for cross-version reproducibility.
@@ -150,6 +152,8 @@ The exact seed-derivation format is an open question; the requirements
 (library-owned, defaulted, per-test, reproducible) are not.
 
 ## User-managed input parallelism (sharding)
+
+TODO: API is ugly, requires calling clean_test_data() and pre_gen_fn()
 
 The library exposes `create_all_tests(shard=(i, n))` with strided partitioning:
 worker `i` generates tests whose index `% n == i`. A user driver launches N
@@ -172,6 +176,10 @@ each other), so the driver must clean once before spawning them. The library
 exposes `Problem.clean_test_data()` for this: it removes `data/sample`,
 `data/secret`, and any `*.zip` in the problem dir whose name ends with
 `_<test_set_name>`. A driver calls it once, then launches the workers.
+
+Compilation is likewise one-time setup: `pre_gen_fn` runs only when
+`shard is None`, so the coordinating process compiles binaries and shard
+workers skip compilation.
 
 ## Packaging: in-memory registry (no disk scan)
 
@@ -260,8 +268,10 @@ Changes vs today:
 - Change `TestFileBase` methods to return `str`.
 - Split `_add_test` / `create_all_tests` into the three phases.
 - Remove `_cur_file` and `print_test`.
-- Add `Problem.solution` and default answer generation; compile the solution
-  before Phase 3 (handles `cpp_runner`).
+- Add `Problem.solution` and default answer generation. Do **not** compile the
+  solution in the library; users compile their runners themselves (typically in
+  `pre_gen_fn`), since a problem may need several binaries and shard workers
+  must not each recompile.
 - Keep `n_jobs` accepted but force serial for now.
 - Port `test/gta6/main.py` (the live reference; `examples/add` is stale).
 - Verify byte-identical `.in`/`.ans` output.
@@ -308,6 +318,9 @@ Changes vs today:
 - Rewrite AGENTS.md. Lots of stuff should go as docs. (IN PROGRESS: the
   non-obvious gotchas and the architecture walkthrough were slimmed; the removed
   notes now live in docstrings in `problem.py`, `cli.py`, and `__init__.py`.)
+- docstrings are good, but ideally users should be able to go just by the
+  example. Either through sparse comments in example or intuitive api design.
+  Our users are bad at reading.
 
 ## Testing
 - Refresh or delete `examples/add/main.py`; update README pointer.
