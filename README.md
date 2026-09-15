@@ -46,7 +46,7 @@ https://github.com/RagnarGrootKoerkamp/BAPCtools
 
 ## Changelog
 
-### 1.0.0
+### 0.2.0
 
 - `write_test_in` returns a `str` instead of writing via `p.print_test`
   (removed). Tests become pure functions, which makes generation parallel-safe.
