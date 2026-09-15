@@ -1,14 +1,18 @@
-import requests
 import json
+
 # from .problem import Problem
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
+import requests
 
 BASE_URL = 'https://calicojudge.com/api/v4'
 
 USER = None
 
 CONTEST_ID = '-1'
+
+PACIFIC = ZoneInfo('America/Los_Angeles')
 
 def _request(method: str,
              endpoint: str,
@@ -23,7 +27,7 @@ def _request(method: str,
     print(f'STATUS: {r.status_code}')
     print(f'{r.text[:200]}')
     if require_200 and r.status_code >= 300:
-        raise Exception(r.status_code)
+        raise requests.HTTPError(f'{method} {endpoint} returned status {r.status_code}')
     print(json.dumps(r.json(), indent=2))
     return r
 
@@ -45,10 +49,11 @@ def upload_problem_zip(file_name, pid: str|None) -> str:
     else:
         print(f'Replacing problem; pid: {pid}...')
         data = {'problem': str(pid), 'color': '#ffffff'}
-    r = _request('post',
-                 f'/contests/{CONTEST_ID}/problems',
-                 data=data,
-                 files={'zip': open(file_name, 'rb')})
+    with open(file_name, 'rb') as zip_file:
+        r = _request('post',
+                     f'/contests/{CONTEST_ID}/problems',
+                     data=data,
+                     files={'zip': zip_file})
 
     print(f"problem uploaded with pid: {pid}")
     pid = r.json()['problem_id']
@@ -81,7 +86,6 @@ def link_problem_to_contest(pid: str, label: str, rgb: str):
             f'/contests/{CONTEST_ID}/problems/{pid}',
             data = data)
             # files={'data': ('problems.json', data)})
-    return
 
 def get_problem(pid: str):
     r = _request(
@@ -91,7 +95,7 @@ def get_problem(pid: str):
     if r.status_code == 404:
         return None
     if r.status_code >= 300:
-        raise Exception(r.status_code)
+        raise requests.HTTPError(f'get_problem returned status {r.status_code}')
     return r.json()
 
 
@@ -117,15 +121,14 @@ def add_problem_metadata_to_contest(name: str, label: str, rgb: str):
     assert len(r) == 1
     return r[0]
 
-def create_contest(cid: str, name: str, start_time: datetime = datetime(2000, 1, 1, 0, 0), duration: str = '9999999:00:00'):
+def create_contest(cid: str, name: str, start_time: datetime = datetime(2000, 1, 1, 0, 0, tzinfo=PACIFIC), duration: str = '9999999:00:00'):
     """
     Creates a contest, check code for parameters used. Assumes datetime object is in
     Pacific time.
     """
     def to_iso8601_pacific(dt: datetime) -> str:
         """Assume input datetime is in Pacific Time and return ISO 8601 string."""
-        pacific = ZoneInfo("America/Los_Angeles")
-        dt = dt.replace(tzinfo=pacific)
+        dt = dt.replace(tzinfo=PACIFIC)
         return dt.isoformat()
 
     activate_time = start_time - timedelta(minutes=50)

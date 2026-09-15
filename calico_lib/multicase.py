@@ -1,6 +1,8 @@
-from .problem import Problem, TestFileBase
 from abc import ABC, abstractmethod
-from collections.abc import Collection, Iterable
+from collections.abc import Iterable
+
+from .problem import TestFileBase
+
 # from typing import override
 
 class TestCaseBase(ABC):
@@ -10,7 +12,6 @@ class TestCaseBase(ABC):
     @abstractmethod
     def write_test_in(self) -> str:
         """Return the input text for this test case."""
-        pass
 
     @abstractmethod
     def verify_case(self, test_sets):

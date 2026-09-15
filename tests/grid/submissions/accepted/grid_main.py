@@ -1,5 +1,6 @@
 from statistics import median
 
+
 def solve(N, A):
     """
     Find an array B of N integers representing the filled-in second row,

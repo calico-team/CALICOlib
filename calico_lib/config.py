@@ -3,12 +3,13 @@ import tomllib
 
 from calico_lib import judge_api
 
+
 def try_load_toml(file_path):
     try:
         with open(file_path, 'rb') as f:
             toml = tomllib.load(f)
             return toml
-    except Exception as e:
+    except (OSError, tomllib.TOMLDecodeError) as e:
         print('Warning: unable to load some configs...' + str(e))
         return None
 

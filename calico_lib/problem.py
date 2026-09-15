@@ -1,19 +1,23 @@
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Collection
-from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import os
 import random
 import shutil
-from typing import Dict, NamedTuple
+
 # from warnings import deprecated
 import zipfile
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Collection
+from concurrent.futures import ThreadPoolExecutor
+from typing import NamedTuple
 
-from .judge_api import add_problem_metadata_to_contest, get_problem, link_problem_to_contest, set_contest_id, set_user, unlink_problem_from_contest, upload_problem_zip
-import argparse
+from .judge_api import (
+    add_problem_metadata_to_contest,
+    get_problem,
+    link_problem_to_contest,
+    upload_problem_zip,
+)
 from .runner import Runner
-import traceback
-import subprocess
+
 
 class TestFileBase(ABC):
     # TODO: consider storing filename in this class
@@ -30,7 +34,6 @@ class TestFileBase(ABC):
     @abstractmethod
     def write_test_in(self) -> str:
         """Return the input file text for this test."""
-        pass
 
     def write_test_out(self, infile: str) -> str:
         """Return the answer file text. Default: run the problem's solution on infile."""
@@ -74,7 +77,7 @@ class Problem:
 
     _cli_func: Callable|None = None
 
-    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] = [], solution: Runner | None = None, seed: str | None = None):
+    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] | None = None, solution: Runner | None = None, seed: str | None = None):
         """Create a problem rooted at ``problem_dir``.
 
         ``problem_dir`` is stored as an absolute path and all generated and
@@ -82,6 +85,8 @@ class Problem:
         ``os.chdir``. ``seed`` (default ``problem_name``) drives per-test
         seeding in ``create_all_tests``.
         """
+        if test_sets is None:
+            test_sets = []
         self.problem_name = problem_name
         self.test_sets = test_sets
         self.problem_dir = os.path.abspath(problem_dir)
@@ -99,7 +104,7 @@ class Problem:
         self.pre_fn = None
 
         # mapping from test sets to tests included in that test set
-        self.test_paths: Dict[str, list[str]] = dict()
+        self.test_paths: dict[str, list[str]] = {}
         for subproblem in test_sets:
             self.test_paths[subproblem.name] = []
 
@@ -353,8 +358,7 @@ class Problem:
         Upload metadata to contest.
         """
         print("adding metadata")
-        i = 0
-        for sub_test in self.test_sets:
+        for i, sub_test in enumerate(self.test_sets):
             subproblem = sub_test.name
 
             label = str(p_num)
@@ -365,7 +369,6 @@ class Problem:
                     label,
                     sub_test.color(),
                     )
-            i += 1
 
     def upload(self):
         i = 0

@@ -33,7 +33,7 @@ def solve(K, N, M, P, Q, X, Y):
 		assert y < M, f"Failed with y={y} and M={M}"
 
 	paired_set = set(zip(X, Y))
-	assert len(paired_set) == K, f"Duplicate Found"
+	assert len(paired_set) == K, "Duplicate Found"
 
 	return 0
 

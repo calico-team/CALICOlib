@@ -1,10 +1,7 @@
-from collections.abc import Collection, Sequence
-from dataclasses import dataclass
-import os
-import shutil
 import subprocess
 import sys
-
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 CC: str = 'g++'
 

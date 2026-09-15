@@ -1,5 +1,6 @@
 import math
 
+
 def egcd(a, b):
     """
     Extended Euclidean Algorithm.
@@ -47,7 +48,7 @@ def solve(K, N, M, P, Q, X, Y):
         b = (b * p_i) % m
         a = (a * q_i) % n
 
-        g_m_n, c, d = egcd(n, m)
+        g_m_n, c, _ = egcd(n, m)
         
         if (a - b) % g_m_n != 0:
             return float('inf')

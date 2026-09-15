@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
-from calico_lib import Contest, run_cli
+from zoneinfo import ZoneInfo
 
+from grid.main import p as grid
 from gta6.main import p as gta6
 from laser.main import p as laser
-from grid.main import p as grid
+
+from calico_lib import Contest, run_cli
+
 
 def main():
     problem_list = [
@@ -18,19 +21,17 @@ def main():
     all_branch.append('lecture')
 
 
-    i = 0
     labels = ['1', '2', '3']
     assert len(labels) == len(problem_list)
-    for p in problem_list:
-        i += 1
-        p.label_prefix = labels[i-1]
+    for i, p in enumerate(problem_list):
+        p.label_prefix = labels[i]
 
     # problem_list = problem_list[4:]
 
     c = Contest('contest-shortname',
                 "Contest Name",
                  # datetime(2025, 11, 9, 4),
-                 datetime(2026, 4, 11, 16), # bro it's 16 not 4
+                 datetime(2026, 4, 11, 16, tzinfo=ZoneInfo('America/Los_Angeles')), # bro it's 16 not 4
                  '3:00:00',
                  problems = problem_list)
 

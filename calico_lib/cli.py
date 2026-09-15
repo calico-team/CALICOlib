@@ -1,12 +1,12 @@
+import argparse
 import os
 import shutil
-import sys
 
-from calico_lib.config import load_secrets, load_configs
+from calico_lib.config import load_configs, load_secrets
+
 from .contest import Contest
 from .judge_api import set_contest_id, set_user
 from .problem import Problem
-import argparse
 
 
 def run_cli(obj: Contest|Problem):
@@ -118,7 +118,7 @@ def run_cli(obj: Contest|Problem):
 
         def ignore(path, names):
             # print(path, names)
-            rel = os.path.relpath(path, target_problem.problem_dir)
+            rel = os.path.relpath(path, target_problem.problem_dir)  # noqa: B023
             inc = ['./data/sample', './templates']
             if rel == '.':
                 return [name for name in names if name not in ['data', 'templates']]
@@ -127,6 +127,7 @@ def run_cli(obj: Contest|Problem):
             if rel in inc:
                 return []
             return names
+
         if isinstance(obj, Contest) and args.contest_zip:
             shutil.copytree(
                 target_problem.problem_dir,

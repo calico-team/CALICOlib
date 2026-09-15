@@ -1,19 +1,20 @@
-import argparse
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Literal
+from zoneinfo import ZoneInfo
 
-from .judge_api import create_contest, set_contest_id
-from .problem import Problem, RANK_COLOR_MAP
 from calico_lib import judge_api
 
+from .judge_api import create_contest, set_contest_id
+from .problem import RANK_COLOR_MAP, Problem
+
+
 @dataclass
-class Contest():
+class Contest:
     contest_id: str
     name: str
-    start_time: datetime = datetime(2000, 1, 1, 0, 0)
+    start_time: datetime = datetime(2000, 1, 1, 0, 0, tzinfo=ZoneInfo('America/Los_Angeles'))
     duration: str = '9999999:00:00'
-    problems: List[Problem] = field(default_factory=list)
+    problems: list[Problem] = field(default_factory=list)
 
     def create_contest(self):
         create_contest(self.contest_id, self.name, self.start_time, self.duration)

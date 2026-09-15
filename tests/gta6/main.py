@@ -5,14 +5,13 @@
 #   main: T <= 100, A <= 100, B <= 100
 #   bonus: T <= 1e5, A <= 1e12, B <= 1e12
 
-from calico_lib import Problem, cpp_runner, py_runner, TestFileBase, MulticaseTestFile, Subproblem, Runner
-from collections.abc import Collection, Iterable
-from typing import NamedTuple
-import random
 import os
+import random
+from collections.abc import Iterable
 from os import path
+from typing import NamedTuple
 
-from calico_lib.multicase import TestCaseBase
+from calico_lib import Problem, Subproblem, TestFileBase, cpp_runner, py_runner
 
 problem_dir = os.path.dirname(__file__)
 
@@ -26,8 +25,6 @@ solution = py_runner(path.join(problem_dir, 'submissions/accepted/gta6.py'))
 solution2 = cpp_runner(
         path.join(problem_dir, 'submissions/accepted/gta6.cpp'),
         path.join(problem_dir, 'gta6.bin'))
-validator1 = py_runner(path.join(problem_dir, 'scripts/validator_main.py'))
-validator2 = py_runner(path.join(problem_dir, 'scripts/validator.py'))
 
 p = Problem(
         'gta6',
@@ -48,14 +45,11 @@ class TestFile(TestFileBase):
         lines = [str(len(self.cases))]
         for case in self.cases:
             lines.append(case.E)
-            lines.append("{:04d} {:02d} {:02d}".format(case.Y, case.M, case.D))
+            lines.append(f"{case.Y:04d} {case.M:02d} {case.D:02d}")
         return "\n".join(lines) + "\n"
 
     def validate_test_in(self, infile: str) -> None:
-        """Verify the test using an external validator."""
-        #if 'main' in self.subproblems:
-        #    validator1.exec_file(infile)
-        #validator2.exec_file(infile)
+        """Verify the test with in-process asserts."""
         for c in self.cases:
             assert c.D >= 1 and c.D <= 31
             assert c.M >= 1 and c.M <= 12

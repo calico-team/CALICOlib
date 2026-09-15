@@ -2,13 +2,14 @@
 
 # Laser problem.
 
-from calico_lib import Problem, cpp_runner, py_runner, TestFileBase, Subproblem
-from collections.abc import Iterable
-from typing import NamedTuple, override
-import random
-import os
 import math
+import os
+import random
+from collections.abc import Iterable
 from os import path
+from typing import NamedTuple, override
+
+from calico_lib import Problem, Subproblem, TestFileBase, cpp_runner, py_runner
 
 problem_dir = os.path.dirname(__file__)
 

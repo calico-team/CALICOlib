@@ -1,4 +1,3 @@
-import sys
 
 def median(a, b, c):
     """Returns the median of three numbers."""

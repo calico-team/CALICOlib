@@ -11,7 +11,12 @@ from collections.abc import Iterable
 from typing import NamedTuple, override
 
 from calico_lib import (
-    Problem, Subproblem, TestFileBase, cpp_runner, py_runner, run_cli,
+    Problem,
+    Subproblem,
+    TestFileBase,
+    cpp_runner,
+    py_runner,
+    run_cli,
 )
 
 # All generated files live under this directory.
