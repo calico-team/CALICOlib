@@ -42,10 +42,11 @@ class TestFileBase(ABC):
 
     @abstractmethod
     def validate_test_in(self, infile: str) -> None:
-        """Validate the generated input, written at ``infile``.
+        """Validate the input file written at ``infile``.
 
-        This always runs during Phase 2 of ``create_all_tests`` and cannot be
-        skipped; if validation is expensive, comment out the body instead.
+        Validation is mandatory: every test must implement this, and it always
+        runs during Phase 2 of ``create_all_tests``. To skip validation, make
+        the body an explicit no-op (``pass``) rather than leaving it out.
         """
         assert False, "Must validate test"
 
@@ -75,9 +76,7 @@ class Problem:
     problem_dir: str
     custom_checker: None|str
 
-    _cli_func: Callable|None = None
-
-    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] | None = None, solution: Runner | None = None, seed: str | None = None):
+    def __init__(self, problem_name: str, problem_dir: str, test_sets: list[Subproblem] | None = None, solution: Runner | None = None, seed: str | int | None = None):
         """Create a problem rooted at ``problem_dir``.
 
         ``problem_dir`` is stored as an absolute path and all generated and
@@ -162,6 +161,12 @@ class Problem:
             self.test_paths[subproblem].append(file_path)
 
     def add_raw_test_NO_VALIDATE(self, path, subproblems: list[str]|None = None):
+        """Register an externally-generated test without validating it.
+
+        ``path`` is a test stem: the ``.in``/``.ans`` files are expected beside
+        it. This is a stopgap escape hatch, so it skips the validation phase
+        entirely (hence the name); a validated ``add_raw_test`` will replace it.
+        """
         if subproblems is None:
             subproblems = [s.name for s in self.test_sets]
         for subproblem in subproblems:
@@ -259,6 +264,9 @@ class Problem:
         Shard workers re-run ``main.py`` with env vars and must keep the usual
         ``if __name__ == '__main__':`` guard; they skip the data/zips wipe, so
         the driver must call ``clean_test_data()`` once before spawning them.
+
+        Sharding is experimental: the driver-side contract (coordinating
+        ``clean_test_data()`` and ``pre_gen_fn``) is not settled and may change.
         """
         if shard is None:
             self.clean_test_data()
@@ -410,19 +418,3 @@ class Problem:
             else:
                 print('Warning: problem already linked, skipping...')
             i = i + 1
-
-
-    # @deprecated("Use 'from calico_lib import run_cli' instead.")
-    def run_cli(self, pre_fn: Callable[[], None]|None = None):
-        """
-        DEPRECATED
-        """
-        """
-        Run pre_fn before generating test cases.
-        """
-        print('Warning: using deprecated function..., use "from calico_lib import run_cli" instead.')
-        if pre_fn is not None:
-            assert self.pre_fn is None
-            self.pre_fn = pre_fn
-        assert self._cli_func is not None
-        self._cli_func()

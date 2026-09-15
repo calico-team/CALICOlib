@@ -8,10 +8,10 @@ first-class affordances for parallel generation.
 
 A clean, deterministic, portable 1.0 API with:
 
-- process-based parallelism for the expensive phase (running reference
-  solutions), managed by the library;
-- a supported, low-friction path for users who want to parallelize input
-  generation themselves (sharding);
+- library-managed threads for the expensive phase (running reference
+  solutions), which suffices because that phase shells out to a subprocess;
+- a supported, low-friction path for users who want process-level parallelism
+  for the whole pipeline (input, validation, answers) themselves (sharding);
 - packaging driven by the in-memory test registry, with `add_raw_test` as the
   explicit escape hatch for externally-generated tests.
 
@@ -26,8 +26,11 @@ A clean, deterministic, portable 1.0 API with:
    marked "bad idea"; README's "Subproblem→Problem" rename was also rejected).
 4. **Declarative solution.** The reference solution becomes a `Runner` on
    `Problem`; answer generation defaults to "run this command on the input."
-5. **Parallelism end-state: processes** for answer generation. Threads first as
-   an intermediate step; the design must make the process switch cheap.
+5. **Parallelism: threads for answer generation, processes via sharding.**
+   Answer generation shells out to a subprocess, so `ThreadPoolExecutor`
+   already parallelizes it (the GIL is released). Full-pipeline, process-level
+   parallelism is the user's job via sharding, so a library-managed
+   `ProcessPoolExecutor` (old Step A2) is dropped.
 6. **User-managed input parallelism via sharding.** The library does not try to
    orchestrate user code across processes. It exposes deterministic, pure,
    shardable generation; the user owns the orchestration (fork, re-exec, queue,
@@ -96,10 +99,11 @@ Notes:
 
 - **Phase 1 stays serial** by default: it is fast and it is what consumes
   `random`. Sharding (above) is the user's opt-in way to parallelize it.
-- **Phase 3 is the parallel unit.** Its payload is `(infile, ansfile, run_cmd)`
-  — plain picklable data — and the worker function lives in `calico_lib/`
-  (importable), so a `ProcessPoolExecutor` with `spawn` works without shipping
-  user code.
+- **Phase 3 is the parallel unit**, threaded via `ThreadPoolExecutor`. The
+  solution is a subprocess, so the GIL is released and threads give real
+  parallelism, and the payload does not need to be picklable. Process-level
+  parallelism is delegated to sharding, which re-execs `main.py` and covers
+  Phases 1-3.
 - **Per-test seeding** makes each test independent of its siblings and of
   ordering, which is what makes sharding correct and reproducible.
 
@@ -221,7 +225,7 @@ class Problem:
     def __init__(self, problem_name: str, problem_dir: str,
                  test_sets: list[Subproblem] | None = None,
                  solution: Runner | None = None,
-                 seed: str | None = None): ...
+                 seed: str | int | None = None): ...
 
     def add_sample_test(self, test, name='', subproblems=None): ...
     def add_hidden_test(self, test_or_fn, name='', subproblems=None): ...
@@ -235,7 +239,7 @@ class Problem:
 
 Changes vs today:
 
-- `Problem.__init__` gains `solution: Runner | None` and `seed: str | None`.
+- `Problem.__init__` gains `solution: Runner | None` and `seed: str | int | None`.
 - `write_test_in` / `write_test_out` return `str` instead of writing via
   `print_test`.
 - `add_hidden_test` keeps accepting either an instance (hard-coded test) or a
@@ -248,17 +252,18 @@ Changes vs today:
 - `Problem._cur_file`, `print_test`, and the deprecated `Problem.run_cli` are
   removed.
 
-## Forward-compat choices (bake in now)
+## Forward-compat choices
 
-1. **Executor seam** inside `create_all_tests` so Phase 3 can switch from threads
-   to processes without touching call sites.
-2. **Declarative `Problem.solution`** — keeps Phase 3 "run command on file"
-   rather than user code, so the process switch stays trivial.
-3. **Jobs as data** (`path`, `run_cmd`), never closures over user objects.
-4. **Shard + per-test seeding** — first-class, so input-gen parallelism is a
-   user choice, not a library rewrite later.
-5. **Absolute, `problem_dir`-based paths** — no `os.chdir`, so the process
+1. **Declarative `Problem.solution`** — keeps Phase 3 "run command on file"
+   rather than user code, so the executor stays swappable if parallelism is
+   revisited.
+2. **Shard + per-test seeding** — first-class, so full-pipeline parallelism is
+   a user choice, not a library rewrite later.
+3. **Absolute, `problem_dir`-based paths** — no `os.chdir`, so the process
    working directory never affects generation or packaging.
+
+An earlier "executor seam that is process-ready" / "jobs as data" requirement
+is moot now that Step A2 is dropped: Phase 3 stays in-process with threads.
 
 ## Implementation phases
 
@@ -305,9 +310,15 @@ Changes vs today:
 - `ThreadPoolExecutor(n_jobs)` around the solution-run phase; GIL is released
   during `subprocess.check_output`.
 
-**Step A2 — processes for Phase 3.**
-- Swap the executor to `ProcessPoolExecutor` (spawn-safe) since the job payload
-  `(infile, ansfile, run_cmd)` is picklable and the worker function is importable.
+**DROPPED: Step A2 — processes for Phase 3.**
+- Redundant. Phase 3 already gets real parallelism from threads (the solution
+  is a subprocess, so the GIL is released), and process-level parallelism is
+  provided by sharding, which covers Phases 1-3.
+- Dropping it also makes the "picklable `(infile, ansfile, run_cmd)` payload"
+  requirement moot: the seam only carries `(test, file_path)` within one
+  process.
+- Consequence: in-process CPU-bound `write_test_out` overrides gain nothing
+  from threads; use sharding for those.
 
 ### Other cleanup
 
@@ -329,14 +340,6 @@ Changes vs today:
 
 ## Open questions
 
-- `MulticaseTestFile` / `TestCaseBase`: confirm they adopt the return-string
-  contract (`TestCaseBase.write_test_in` returns one case's lines;
-  `verify_case` naming may be reconsidered).
-- Per-test-set solutions? `Problem.solution` is per-Problem for now; custom
-  `write_test_out` is the escape hatch.
-- Sample tests: keep them serial/in-process (they are few and hand-written).
-- `validate_test_in` currently cannot be skipped and is abstract; consider a
-  concrete no-op default (see suggestion #6) or a `validate=False` param.
 - Per-test seeding mechanism: global-`random`-only vs. explicit `seed` arg to
   the factory (or both).
 - `add_raw_test` (externally-generated tests): currently in-memory only; decide

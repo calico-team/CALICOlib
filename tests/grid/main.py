@@ -15,7 +15,7 @@ from collections.abc import Iterable
 from os import path
 from typing import NamedTuple, override
 
-from calico_lib import Problem, Subproblem, TestFileBase, cpp_runner, py_runner
+from calico_lib import Problem, Subproblem, TestFileBase, cpp_runner, py_runner, run_cli
 
 problem_dir = os.path.dirname(__file__)
 
@@ -181,7 +181,7 @@ def alternating_large() -> TestFile:
     return test
 
 def main():
-    p.run_cli()
+    run_cli(p)
 
 if __name__ == '__main__':
     main()

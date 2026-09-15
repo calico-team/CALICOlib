@@ -145,5 +145,3 @@ def run_cli(obj: Contest|Problem):
         if args.link:
             print('=== Linking to Contest ===')
             target_problem.link_to_contest()
-
-Problem._cli_func = run_cli
