@@ -53,3 +53,4 @@ https://github.com/RagnarGrootKoerkamp/BAPCtools
   override `write_test_out` for the common case.
 - `create_all_tests(n_jobs=...)` (or `-j/--jobs` on the CLI) runs answer
   generation in parallel across subprocesses.
+- Some random additional API for forward compatibility.
