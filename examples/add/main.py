@@ -1,89 +1,108 @@
 #!/usr/bin/env python3
 
-from collections.abc import Collection, Iterable
-from typing import override
-from calico_lib import Problem, py_runner, TestFileBase
-import random
+# Example add problem.
+# Constraints:
+#   main: T <= 100, A <= 100, B <= 100
+#   bonus: T <= 1e5, A <= 1e12, B <= 1e12
 
-class TestCase():
-    def __init__(self, X: int, Y: int) -> None:
-        self.X = X
-        self.Y = Y
+import os
+import random
+from collections.abc import Iterable
+from typing import NamedTuple, override
+
+from calico_lib import Problem, Subproblem, TestFileBase, cpp_runner, py_runner
+
+problem_dir = os.path.dirname(__file__)
+
+p = Problem(
+        'add_test_fa25',
+        problem_dir, # problem is in the same directory as the python source file
+        test_sets=[
+            Subproblem('main', rank=1),
+            Subproblem('bonus', rank=2, time_limit=4, mem_limit=1_000_000_000),
+            ])
+class TestCase(NamedTuple):
+    X: int
+    Y: int
+
+sol2 = cpp_runner(
+        'submissions/accepted/sol.cpp',
+        'sol.bin')
+validator1 = py_runner('scripts/validator_main.py')
+validator2 = py_runner('scripts/validator.py')
+
+@p.pre_gen_fn
+def pre_gen_fn():
+    random.seed('add_seed_600')
+    sol2.compile()
+
+class TestFile(TestFileBase):
+    def __init__(self, cases: Iterable[TestCase]) -> None:
+        self.cases = list(cases)
         super().__init__()
 
+    @override
     def write_test_in(self):
         """Write the input file of this test case using print_test"""
-        p.print_test(self.X, self.Y)
-
-    def verify_case(self, test_sets):
-        assert 1 <= self.X <= 10000
-        if 'main' in test_sets:
-            assert self.X <= 100
-
-solution = py_runner('submissions/accepted/add_sol.py')
-
-# TODO: move this to library
-class Test(TestFileBase):
-
-    def __init__(self, cases: Iterable[TestCase]|None = None) -> None:
-        if cases is None:
-            self.cases: list[TestCase] = []
-        else:
-            self.cases = list(cases)
-        super().__init__()
-
-    # @override
-    # def get_subproblems(self) -> list[str]:
-    #     return ['bonus']
-
-    @override
-    def write_test_in(self):
         p.print_test(len(self.cases))
         for case in self.cases:
-            case.write_test_in()
-        return super().write_test_in()
-
-    @override
-    def write_test_out(self, infile: str):
-        p.print_test(solution.exec_file(infile))
+            p.print_test(case.X, case.Y)
 
     @override
     def validate_test_in(self, infile: str):
-        """Verify the test using assert (not recommended, consider properly
-        verifying by reading the file)."""
-        total = 0
-        assert 1 <= len(self.cases) <= 100, f"Got {len(self.cases)} cases"
-        for case in self.cases:
-            case.verify_case(self.subproblems)
-            total += case.X + case.Y
-        assert total <= 1e6
+        """Verify the test using an external validator."""
+        if 'main' in self.subproblems:
+            validator1.exec_file(infile)
+        validator2.exec_file(infile)
 
-p = Problem[Test](
-        'add',
-        test_sets=['main', 'bonus'])
+    @override
+    def write_test_out(self, infile: str):
+        p.print_test(sol2.exec_file(infile))
 
-p.add_sample_test(Test([
+# adds to all subproblems by default
+p.add_sample_test(TestFile([
     TestCase(4, 7),
     TestCase(1, 23),
     TestCase(9, 8),
     TestCase(1, 1),
     ]))
 
-@p.hidden_test_generator(test_count=5, subproblems=['main', 'bonus'])
-def pure_random() -> Test:
-    test = Test()
-    for i in range(100):
+cases = []
+for i in range(80):
+    cases.append(TestCase(i+1, 80-i))
+
+p.add_hidden_test(TestFile(cases), 'iota')
+    
+cases = []
+for i in range(100):
+    cases.append(TestCase(i+1, 10000-i))
+
+p.add_hidden_test(TestFile(cases), 'iota', subproblems=['bonus'])
+
+# more ways to add test cases. This is preferred, since running the function is offloaded to run only at test generation.
+@p.hidden_test_generator(test_count=4)
+def pure_random() -> TestFile:
+    test = TestFile([])
+    for i in range(10):
         test.cases.append(TestCase(random.randint(1, 100), random.randint(1, 100)))
     return test
 
-@p.hidden_test_generator(test_count=5, subproblems=['bonus'])
+@p.hidden_test_generator(test_count=4, subproblems=['bonus'])
 def pure_random2():
-    cases = (TestCase(random.randint(70, 10000), random.randint(70, 10000)) for _ in range(5))
-    return Test(cases)
+    cases = (TestCase(random.randint(70, int(1e12)), random.randint(70, int(1e12))) for _ in range(100))
+    return TestFile(cases)
 
 def main():
-    # p.run_cli()
-    p.create_all_tests()
+    # increase stack size for running solutions using heaving recursion
+    # import resource
+    # resource.setrlimit(resource.RLIMIT_STACK, (268435456, 268435456))
+
+    # TODO: set seed
+    p.run_cli()
+
+    # p.init_problem()
+    # p.create_all_tests()
     # p.create_zip()
 
-main()
+if __name__ == '__main__':
+    main()
