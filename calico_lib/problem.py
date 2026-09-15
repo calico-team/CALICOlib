@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import os
 import random
@@ -127,6 +128,13 @@ class Problem:
         assert self.solution is not None, "No solution configured for this problem"
         return self.solution.exec_file(infile)
 
+    def _write_answer(self, job: tuple[TestFileBase, str]) -> None:
+        """Write the answer file for one test by running its output generator."""
+        test, file_path = job
+        print(f"Writing ans (out) file {file_path + '.ans'}")
+        with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:
+            out_file.write(test.write_test_out(file_path + '.in'))
+
     def _test_seed(self, index: int, file_path: str) -> int:
         """Return a stable per-test integer seed derived from the problem seed.
 
@@ -239,12 +247,15 @@ class Problem:
         ``pre_gen_fn`` runs only when ``shard is None`` (the coordinating
         process), so shard workers skip one-time setup like compilation.
 
+        ``n_jobs`` controls Phase 3 concurrency: ``None`` uses
+        ``os.cpu_count()``, ``1`` runs serially, and a larger value sets
+        the worker count.
+
         ``shard=(i, n)`` limits generation to tests whose index ``% n == i``.
         Shard workers re-run ``main.py`` with env vars and must keep the usual
         ``if __name__ == '__main__':`` guard; they skip the data/zips wipe, so
         the driver must call ``clean_test_data()`` once before spawning them.
         """
-        # TODO(n_jobs): parallelize Phase 3 (solution runs) across n_jobs workers.
         if shard is None:
             self.clean_test_data()
         os.makedirs(self._sample_path, exist_ok=True)
@@ -278,11 +289,20 @@ class Problem:
         for test, file_path in tests:
             test.validate_test_in(file_path + '.in')
 
-        # Phase 3: generate answers (run solution).
-        for test, file_path in tests:
-            print(f"Writing ans (out) file {file_path + '.ans'}")
-            with open(file_path + '.ans', 'w', encoding='utf-8', newline='\n') as out_file:
-                out_file.write(test.write_test_out(file_path + '.in'))
+        # Phase 3: generate answers (run solution), in parallel.
+        if n_jobs is None:
+            workers = os.cpu_count() or 1
+        else:
+            workers = n_jobs
+        if workers < 1:
+            raise ValueError(f'n_jobs must be >= 1, got {n_jobs}')
+
+        if workers == 1:
+            for job in tests:
+                self._write_answer(job)
+        else:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                list(executor.map(self._write_answer, tests))
 
     def _zip_file_path(self, problem_name: str, test_set_name: str) -> str:
         """Return the absolute zip path for a problem test set."""

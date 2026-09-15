@@ -301,7 +301,7 @@ Changes vs today:
 
 ### Track A — parallelism (after B, small)
 
-**Step A1 — threads for Phase 3.**
+**DONE: Step A1 — threads for Phase 3.**
 - `ThreadPoolExecutor(n_jobs)` around the solution-run phase; GIL is released
   during `subprocess.check_output`.
 

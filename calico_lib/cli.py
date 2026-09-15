@@ -36,6 +36,8 @@ def run_cli(obj: Contest|Problem):
     parser.add_argument('-s', '--skip-test-gen', action='store_true', help='Skip test generation.')
     parser.add_argument('-f', '--final', action='store_true', help='Don\'t append _draft to the problem id.')
     parser.add_argument('-i', '--p-ord', type=int, help='Problem label.')
+    parser.add_argument('-j', '--jobs', type=int, default=None,
+                        help='Number of parallel workers for answer generation (default: auto).')
 
     if isinstance(obj, Contest):
         parser.add_argument(
@@ -109,7 +111,7 @@ def run_cli(obj: Contest|Problem):
         if not args.skip_test_gen:
             if not target_problem.always_skip_test_gen:
                 print('\n=== Creating Tests ===')
-                target_problem.create_all_tests()
+                target_problem.create_all_tests(n_jobs=args.jobs)
 
             print('\n=== Creating Zip ===')
             target_problem.create_zip('')
