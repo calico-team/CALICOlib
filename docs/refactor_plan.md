@@ -145,9 +145,6 @@ Caveats:
   None``; shard workers skip it, so it is the place to compile binaries exactly
   once. Per-worker setup (e.g. precomputing data inside each shard process) has
   no dedicated hook yet and is an open design gap.
-- **String vs int seed.** `random.seed('6')` and `random.seed(6)` differ, and
-  string seeds are not guaranteed stable across Python versions (the string-to-int
-  path changed in 3.9). Recommend int seeds for cross-version reproducibility.
 - **Index in the seed.** Inserting a test shifts the seed of later tests (fine:
   code changed -> regenerate). Seeding on `name` instead avoids this but requires
   unique names per test (repeated generators via `hidden_test_generator` collide).

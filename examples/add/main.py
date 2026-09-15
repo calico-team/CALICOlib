@@ -107,7 +107,7 @@ p.add_hidden_test(iota_bonus, 'iota', subproblems=['bonus'])
 # Random tests are factories too, for the same seeding reason.
 @p.hidden_test_generator(test_count=4)
 def pure_random() -> TestFile:
-    """Generate a test file with 10 random main-sized cases."""
+    """Generate a test file with 10 random cases, valid for every subproblem."""
     test = TestFile([])
     for _ in range(10):
         test.cases.append(TestCase(random.randint(1, 100), random.randint(1, 100)))
